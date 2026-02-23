@@ -1,6 +1,11 @@
 import { Logo } from "~/components/logo";
 
-export function Welcome() {
+type WelcomeProps = {
+    login: () => void,
+    signUp: () => void
+}
+
+export function Welcome({ login, signUp }: WelcomeProps) {
     return (
         <main className="h-screen overflow-hidden bg-[#050505] font-mono text-neutral-400">
             {/* Scanline texture */}
@@ -19,12 +24,14 @@ export function Welcome() {
                     <button
                         type="button"
                         className="px-4 py-2 text-[11px] tracking-[0.15em] text-neutral-600 transition-colors hover:text-white"
+                        onClick={login}
                     >
                         LOG IN
                     </button>
                     <button
                         type="button"
                         className="border border-neutral-800 px-5 py-2 text-[11px] tracking-[0.15em] text-white transition-all hover:border-lime hover:text-lime"
+                        onClick={signUp}
                     >
                         SIGN UP
                     </button>
