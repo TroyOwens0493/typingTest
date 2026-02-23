@@ -116,7 +116,7 @@ export function Nav() {
                         className="flex items-center gap-2.5 py-4 text-[11px] tracking-[0.2em] text-neutral-500 transition-colors hover:text-lime"
                     >
                         <ProfileIcon className="h-3 w-3" />
-                        PROFILE
+                        ACCOUNT
                     </Link>
                 </div>
             </div>
