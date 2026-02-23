@@ -1,3 +1,5 @@
+import { Logo } from "~/components/logo";
+
 export function Welcome() {
     return (
         <main className="h-screen overflow-hidden bg-[#050505] font-mono text-neutral-400">
@@ -12,9 +14,7 @@ export function Welcome() {
 
             {/* Navigation */}
             <header className="relative z-10 flex items-center justify-between px-6 py-6 lg:px-12">
-                <span className="font-display text-xl font-bold tracking-tight text-white">
-                    ROYAL<span className="text-lime">TYPE</span>
-                </span>
+                <Logo />
                 <div className="flex items-center gap-1">
                     <button
                         type="button"
@@ -41,7 +41,7 @@ export function Welcome() {
                         </p>
 
                         <h1 className="font-display text-[clamp(3rem,8vw,6.5rem)] font-bold leading-[0.92] tracking-tight text-white">
-                            Aim faster.
+                            Go faster.
                             <br />
                             <span className="text-lime">Type cleaner.</span>
                             <br />

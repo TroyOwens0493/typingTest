@@ -1,0 +1,12 @@
+<button
+    type="button"
+    className="flex items-center gap-2 border border-neutral-800 px-5 py-2 text-[11px] tracking-[0.15em] text-white transition-all hover:border-lime hover:text-lime"
+>
+    <img
+        src={profileSvg}
+        alt=""
+        aria-hidden="true"
+        className="h-3 w-3"
+    />
+    PROFILE
+</button>

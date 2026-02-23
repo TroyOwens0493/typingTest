@@ -10,6 +10,16 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 
+export function meta({ }: Route.MetaArgs) {
+    return [
+        { title: "Royal type" },
+        {
+            name: "description",
+            content: "Create typing battle royals with your friends"
+        },
+    ];
+}
+
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
