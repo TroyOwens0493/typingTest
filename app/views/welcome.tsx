@@ -79,11 +79,11 @@ export function Welcome() {
                             <div className="flex items-center gap-2.5">
                                 <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
                                 <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                    CURRENT QUEUE
+                                    PLAYERS ONLINE NOW
                                 </span>
                             </div>
                             <span className="text-[10px] tabular-nums tracking-[0.2em] text-neutral-600">
-                                02:14
+                                111
                             </span>
                         </div>
 
@@ -91,15 +91,15 @@ export function Welcome() {
                             {[
                                 {
                                     label: "FORMAT",
-                                    value: "12 players / 3 rounds / acc lock",
+                                    value: "Elimintion / Points / Instant fail",
                                 },
                                 {
                                     label: "RANDOM",
-                                    value: "Live now \u2014 starts in 02:14",
+                                    value: "Join a lobby with randoms",
                                 },
                                 {
                                     label: "PRIVATE",
-                                    value: "Lobbies for squads + friends",
+                                    value: "Lobbies for friends",
                                 },
                             ].map((item) => (
                                 <div key={item.label} className="px-4 py-4">
@@ -118,124 +118,8 @@ export function Welcome() {
                                 type="button"
                                 className="w-full py-3 text-[10px] tracking-[0.3em] text-neutral-600 transition-colors hover:text-lime"
                             >
-                                RUN WARMUP {"\u2192"}
+                                PRACTICE {"\u2192"}
                             </button>
-                        </div>
-                    </div>
-                </section>
-
-                {/* ─── Stats strip ─── */}
-                <div className="grid grid-cols-3 border-y border-neutral-800/60 py-8">
-                    {[
-                        { label: "LIVE LOBBIES", value: "24 / 7" },
-                        { label: "ACTIVE FIGHTERS", value: "12,480" },
-                        { label: "DAILY LADDERS", value: "5 tiers" },
-                    ].map((stat) => (
-                        <div key={stat.label} className="text-center">
-                            <p className="text-[9px] tracking-[0.35em] text-neutral-700">
-                                {stat.label}
-                            </p>
-                            <p className="mt-2 font-display text-lg font-bold text-white">
-                                {stat.value}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-
-                {/* ─── Features ─── */}
-                <section className="py-24">
-                    <div className="divide-y divide-neutral-800/40">
-                        {[
-                            {
-                                num: "01",
-                                title: "Random drop-in",
-                                desc: "Instant matchmaking fills a lobby fast so you can focus on clean execution.",
-                            },
-                            {
-                                num: "02",
-                                title: "Private lobbies",
-                                desc: "Spin up a room, share a code, and run bracket fights with your crew.",
-                            },
-                            {
-                                num: "03",
-                                title: "Performance analytics",
-                                desc: "Track burst speed, recovery time, and focus streaks in every fight.",
-                            },
-                        ].map((feature) => (
-                            <div
-                                key={feature.num}
-                                className="group grid grid-cols-[3rem_1fr] gap-6 py-10 sm:grid-cols-[4rem_1fr_1fr] sm:gap-10"
-                            >
-                                <span className="pt-1 font-display text-3xl font-bold text-neutral-800/80 transition-colors group-hover:text-lime-dim sm:text-4xl">
-                                    {feature.num}
-                                </span>
-                                <div className="sm:pt-1">
-                                    <h3 className="font-display text-lg font-bold text-white">
-                                        {feature.title}
-                                    </h3>
-                                    <p className="mt-3 max-w-md text-sm leading-relaxed text-neutral-500 sm:hidden">
-                                        {feature.desc}
-                                    </p>
-                                </div>
-                                <p className="col-start-2 -mt-2 max-w-md text-sm leading-relaxed text-neutral-500 max-sm:hidden sm:col-start-3 sm:mt-0 sm:pt-1">
-                                    {feature.desc}
-                                </p>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
-                {/* ─── How it works ─── */}
-                <section className="border-t border-neutral-800/60 pb-28 pt-24">
-                    <div className="grid gap-16 lg:grid-cols-[0.8fr_1.2fr]">
-                        <div>
-                            <p className="mb-5 text-[10px] tracking-[0.3em] text-neutral-700">
-                                HOW IT WORKS
-                            </p>
-                            <h2 className="font-display text-3xl font-bold tracking-tight text-white lg:text-4xl">
-                                From warmup
-                                <br />
-                                to champion.
-                            </h2>
-                            <p className="mt-5 text-sm leading-relaxed text-neutral-500">
-                                Earn your seat, keep your accuracy, and fight through three
-                                rounds. The last typist standing takes the win.
-                            </p>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-3">
-                            {[
-                                {
-                                    step: "01",
-                                    label: "Warmup gate",
-                                    desc: "Prove you belong",
-                                },
-                                {
-                                    step: "02",
-                                    label: "Live drop",
-                                    desc: "Enter the arena",
-                                },
-                                {
-                                    step: "03",
-                                    label: "Final duel",
-                                    desc: "Last one standing",
-                                },
-                            ].map((item) => (
-                                <div
-                                    key={item.step}
-                                    className="group border border-neutral-800/60 p-5 transition-all hover:border-lime-faint"
-                                >
-                                    <span className="font-display text-3xl font-bold text-neutral-800 transition-colors group-hover:text-lime-dim">
-                                        {item.step}
-                                    </span>
-                                    <p className="mt-4 font-display text-sm font-semibold text-white">
-                                        {item.label}
-                                    </p>
-                                    <p className="mt-1.5 text-xs text-neutral-600">
-                                        {item.desc}
-                                    </p>
-                                </div>
-                            ))}
                         </div>
                     </div>
                 </section>
