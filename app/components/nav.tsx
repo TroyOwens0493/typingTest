@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import { Logo } from "./logo";
+import { ProfileIcon } from "./svgs/profile-icon";
 
 const NAV_ITEMS = [
     { label: "HOME", href: "/home" },
@@ -54,12 +55,7 @@ export function Nav() {
                     type="button"
                     className="z-1 hidden items-center gap-2 border border-neutral-800 px-5 py-2 text-[11px] tracking-[0.15em] text-white transition-all hover:border-lime hover:text-lime lg:flex"
                 >
-                    <img
-                        src="/profileSvg.svg"
-                        alt="profile-icon"
-                        aria-hidden="true"
-                        className="h-3 w-3"
-                    />
+                    <ProfileIcon className="h-3 w-3" />
                     PROFILE
                 </button>
 
@@ -119,21 +115,7 @@ export function Nav() {
                         onClick={() => setMenuOpen(false)}
                         className="flex items-center gap-2.5 py-4 text-[11px] tracking-[0.2em] text-neutral-500 transition-colors hover:text-lime"
                     >
-                        <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                        >
-                            <title>Profile</title>
-                            <circle cx="12" cy="8" r="4" />
-                            <path d="M20 21a8 8 0 1 0-16 0" />
-                        </svg>
+                        <ProfileIcon className="h-3 w-3" />
                         PROFILE
                     </Link>
                 </div>
