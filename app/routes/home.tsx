@@ -1,6 +1,6 @@
 import { Main } from "../views/home";
 
-export default function Home() {
+export default function Page() {
     return <Main />;
 }
 

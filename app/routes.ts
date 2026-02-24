@@ -6,4 +6,5 @@ export default [
     route("home", "routes/home.tsx"),
     route("play/:gameId", "routes/play.tsx"),
     route("login", "routes/login.tsx"),
+    route("practice", "routes/practice.tsx"),
 ] satisfies RouteConfig;

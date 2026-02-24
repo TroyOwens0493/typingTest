@@ -1,6 +1,6 @@
 import { Play } from "../views/play";
 
-export default function Home() {
+export default function Page() {
     return <Play />;
 }
 

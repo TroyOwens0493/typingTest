@@ -1,5 +1,5 @@
 import { SignUp } from "../views/signUp";
 
-export default function Home() {
+export default function Page() {
     return <SignUp />;
 }
