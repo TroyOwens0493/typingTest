@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Nav } from "~/components/nav";
 
+type Word = {
+    text: string, state: "correct" | "incorrect" | "pending"
+};
+
 /*
  * Sample words for the typing area.
  * Each word has a visual state for the static mockup:
@@ -9,7 +13,7 @@ import { Nav } from "~/components/nav";
  *   "active"    — currently being typed (white, with per-char progress)
  *   "pending"   — not yet reached (very dim)
  */
-const WORDS = [
+const Words = [
     // Row of already-typed words
     { text: "the", state: "correct" },
     { text: "quick", state: "correct" },
@@ -56,7 +60,7 @@ const WORDS = [
     { text: "into", state: "pending" },
     { text: "the", state: "pending" },
     { text: "unknown", state: "pending" },
-] as const;
+] as Word[];
 
 function ActiveWord({ text, typed }: { text: string; typed: string }) {
     const chars = text.split("");
@@ -135,6 +139,17 @@ function StatBlock({
     );
 }
 
+function calculateAccuracy({
+    words
+}: {
+    words: Word[]
+}) {
+    const numberCorrect = words.filter((word) => word.state === "correct").length;
+    const numberTyped = words.filter((word) => word.state === "incorrect").length + numberCorrect;
+
+    return Math.floor((numberCorrect / numberTyped) * 100);
+}
+
 export function Practice() {
     const [isFocused, setIsFocused] = useState(true);
 
@@ -159,7 +174,7 @@ export function Practice() {
                 <div className="mb-10 flex items-center gap-12">
                     <StatBlock label="WPM" value="72" accent />
                     <div className="h-4 w-px bg-neutral-800" />
-                    <StatBlock label="ACC" value="96%" />
+                    <StatBlock label="ACC" value={`${calculateAccuracy({ words: Words })}%`} />
                     <div className="h-4 w-px bg-neutral-800" />
                     <StatBlock label="TIME" value="18" accent />
                 </div>
@@ -181,7 +196,7 @@ export function Practice() {
                         className={`flex flex-wrap gap-x-[0.65em] gap-y-3 text-[1.35rem] leading-relaxed transition-all duration-200 ${!isFocused ? "opacity-30" : ""
                             }`}
                     >
-                        {WORDS.map((word, i) => (
+                        {Words.map((word, i) => (
                             <Word
                                 key={`${word.text}-${i}`}
                                 text={word.text}
