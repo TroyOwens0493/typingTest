@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { Nav } from "~/components/nav";
-
-type Word = {
-    text: string, state: "correct" | "incorrect" | "pending"
-};
+import { calculateAccuracy } from "~/models/typingStats";
+import type { TypingWord } from "~/models/typingTypes";
 
 /*
  * Sample words for the typing area.
@@ -60,7 +58,7 @@ const Words = [
     { text: "into", state: "pending" },
     { text: "the", state: "pending" },
     { text: "unknown", state: "pending" },
-] as Word[];
+] as TypingWord[];
 
 function ActiveWord({ text, typed }: { text: string; typed: string }) {
     const chars = text.split("");
@@ -97,8 +95,8 @@ function Word({
     state,
     typed,
 }: {
-    text: string;
-    state: "correct" | "incorrect" | "active" | "pending";
+    text: TypingWord["text"];
+    state: TypingWord["state"] | "active";
     typed?: string;
 }) {
     if (state === "active" && typed !== undefined) {
@@ -139,17 +137,6 @@ function StatBlock({
     );
 }
 
-function calculateAccuracy({
-    words
-}: {
-    words: Word[]
-}) {
-    const numberCorrect = words.filter((word) => word.state === "correct").length;
-    const numberTyped = words.filter((word) => word.state === "incorrect").length + numberCorrect;
-
-    return Math.floor((numberCorrect / numberTyped) * 100);
-}
-
 export function Practice() {
     const [isFocused, setIsFocused] = useState(true);
 
@@ -174,7 +161,12 @@ export function Practice() {
                 <div className="mb-10 flex items-center gap-12">
                     <StatBlock label="WPM" value="72" accent />
                     <div className="h-4 w-px bg-neutral-800" />
-                    <StatBlock label="ACC" value={`${calculateAccuracy({ words: Words })}%`} />
+                    <StatBlock
+                        label="ACC"
+                        value={`${calculateAccuracy({
+                            words: Words.filter((word) => word.state !== "active"),
+                        })}%`}
+                    />
                     <div className="h-4 w-px bg-neutral-800" />
                     <StatBlock label="TIME" value="18" accent />
                 </div>
