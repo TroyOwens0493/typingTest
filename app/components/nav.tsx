@@ -51,13 +51,17 @@ export function Nav() {
                 </div>
 
                 {/* Desktop profile button — right */}
-                <button
-                    type="button"
-                    className="z-1 hidden items-center gap-2 border border-neutral-800 px-5 py-2 text-[11px] tracking-[0.15em] text-white transition-all hover:border-lime hover:text-lime lg:flex"
+                <Link
+                    to="/profile"
+                    className={`z-1 hidden items-center gap-2 border px-5 py-2 text-[11px] tracking-[0.15em] transition-all lg:flex ${
+                        location.pathname === "/profile"
+                            ? "border-lime text-lime"
+                            : "border-neutral-800 text-white hover:border-lime hover:text-lime"
+                    }`}
                 >
                     <ProfileIcon className="h-3 w-3" />
                     PROFILE
-                </button>
+                </Link>
 
                 {/* Mobile hamburger toggle */}
                 <button
@@ -113,8 +117,15 @@ export function Nav() {
                     <Link
                         to="/profile"
                         onClick={() => setMenuOpen(false)}
-                        className="flex items-center gap-2.5 py-4 text-[11px] tracking-[0.2em] text-neutral-500 transition-colors hover:text-lime"
+                        className={`flex items-center gap-2.5 py-4 text-[11px] tracking-[0.2em] transition-colors ${
+                            location.pathname === "/profile"
+                                ? "text-lime"
+                                : "text-neutral-500 hover:text-lime"
+                        }`}
                     >
+                        {location.pathname === "/profile" && (
+                            <span className="h-1 w-1 rounded-full bg-lime" />
+                        )}
                         <ProfileIcon className="h-3 w-3" />
                         ACCOUNT
                     </Link>
