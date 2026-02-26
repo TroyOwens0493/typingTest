@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Nav } from "~/components/nav";
 import { Panel } from "~/components/panel";
+import { Footer } from "~/components/footer";
 
 /* ─── Types ─── */
 type JoinMode = "random" | "code";
@@ -429,18 +430,7 @@ export function Join() {
                 </div>
             </div>
 
-            {/* Bottom decorative bar */}
-            <div className="relative z-10 mt-auto flex items-center justify-between border-t border-neutral-800/50 px-6 py-3 lg:px-12">
-                <span className="text-[9px] tracking-[0.3em] text-neutral-800">
-                    ROYAL<span className="text-lime/30">TYPE</span>
-                    {" // JOIN"}
-                </span>
-                <div className="flex items-center gap-4">
-                    <span className="text-[9px] tabular-nums tracking-[0.2em] text-neutral-800">
-                        v0.1.0
-                    </span>
-                </div>
-            </div>
+            <Footer label="JOIN" />
         </main>
     );
 }
