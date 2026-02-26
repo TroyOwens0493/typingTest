@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Nav } from "~/components/nav";
 import { InputField } from "~/components/input-field";
+import { Panel } from "~/components/panel";
 
 /*
  * Mock data — replace with real data once the API / data layer is wired up.
@@ -232,16 +233,7 @@ export function Profile() {
                                 SECURITY
                             </p>
 
-                            <div className="border border-neutral-800/80 bg-[#0a0a0a]">
-                                <div className="flex items-center justify-between border-b border-neutral-800/80 px-5 py-3">
-                                    <div className="flex items-center gap-2.5">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
-                                        <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                            CHANGE PASSWORD
-                                        </span>
-                                    </div>
-                                </div>
-
+                            <Panel label="CHANGE PASSWORD">
                                 <div className="space-y-5 px-5 py-5">
                                     <InputField
                                         label="CURRENT PASSWORD"
@@ -296,7 +288,7 @@ export function Profile() {
                                         </p>
                                     </div>
                                 </div>
-                            </div>
+                            </Panel>
                         </section>
 
                         {/* ── Session ── */}
@@ -319,17 +311,21 @@ export function Profile() {
 
                     {/* ──── Right: Account Summary Panel ──── */}
                     <div className="self-start lg:sticky lg:top-8">
-                        <div className="border border-neutral-800/80 bg-[#0a0a0a]">
-                            {/* Panel header */}
-                            <div className="flex items-center justify-between border-b border-neutral-800/80 px-5 py-3">
-                                <div className="flex items-center gap-2.5">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
-                                    <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                        ACCOUNT OVERVIEW
-                                    </span>
+                        <Panel
+                            label="ACCOUNT OVERVIEW"
+                            footer={
+                                <div className="px-5 py-4">
+                                    <div className="flex items-center gap-3">
+                                        <span className="border border-lime/30 px-2.5 py-1 text-[9px] tracking-[0.25em] text-lime">
+                                            {ACCOUNT.rank}
+                                        </span>
+                                        <span className="text-[9px] tracking-[0.15em] text-neutral-800">
+                                            current standing
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-
+                            }
+                        >
                             {/* Account summary rows */}
                             <div className="divide-y divide-neutral-800/50 px-5">
                                 {/* Avatar / identity block */}
@@ -361,29 +357,10 @@ export function Profile() {
                                     mono
                                 />
                             </div>
-
-                            {/* Rank badge decorative element */}
-                            <div className="border-t border-neutral-800/80 px-5 py-4">
-                                <div className="flex items-center gap-3">
-                                    <span className="border border-lime/30 px-2.5 py-1 text-[9px] tracking-[0.25em] text-lime">
-                                        {ACCOUNT.rank}
-                                    </span>
-                                    <span className="text-[9px] tracking-[0.15em] text-neutral-800">
-                                        current standing
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                        </Panel>
 
                         {/* ── Danger Zone ── */}
-                        <div className="mt-6 border border-red-400/20 bg-[#0a0a0a]">
-                            <div className="flex items-center gap-2.5 border-b border-red-400/10 px-5 py-3">
-                                <span className="h-1.5 w-1.5 rounded-full bg-red-400/60" />
-                                <span className="text-[10px] tracking-[0.3em] text-red-400/50">
-                                    DANGER ZONE
-                                </span>
-                            </div>
-
+                        <Panel label="DANGER ZONE" variant="danger" className="mt-6">
                             <div className="px-5 py-5">
                                 <p className="mb-4 text-[11px] leading-relaxed text-neutral-700">
                                     Permanently delete your account and all
@@ -426,7 +403,7 @@ export function Profile() {
                                     </div>
                                 )}
                             </div>
-                        </div>
+                        </Panel>
 
                         {/* Decorative text below panels */}
                         <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">

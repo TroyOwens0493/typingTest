@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Logo } from "~/components/logo";
 import { InputField } from "~/components/input-field";
+import { Panel } from "~/components/panel";
 
 export function Login() {
     const [email, setEmail] = useState("");
@@ -67,20 +68,14 @@ export function Login() {
                                 CREDENTIALS
                             </p>
 
-                            <div className="border border-neutral-800/80 bg-[#0a0a0a]">
-                                {/* Panel header */}
-                                <div className="flex items-center justify-between border-b border-neutral-800/80 px-5 py-3">
-                                    <div className="flex items-center gap-2.5">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
-                                        <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                            RETURNING PLAYER
-                                        </span>
-                                    </div>
+                            <Panel
+                                label="RETURNING PLAYER"
+                                headerRight={
                                     <span className="text-[10px] tracking-[0.2em] text-neutral-800">
                                         2 FIELDS
                                     </span>
-                                </div>
-
+                                }
+                            >
                                 {/* Form fields */}
                                 <div className="space-y-5 px-5 py-5">
                                     <InputField
@@ -112,7 +107,7 @@ export function Login() {
                                         </p>
                                     </div>
                                 </div>
-                            </div>
+                            </Panel>
                         </section>
 
                         {/* Don't have an account */}
@@ -131,71 +126,47 @@ export function Login() {
 
                     {/* ──── Right: Server Status Panel ──── */}
                     <div className="self-start lg:sticky lg:top-8">
-                        <div className="border border-neutral-800/80 bg-[#0a0a0a]">
-                            {/* Panel header */}
-                            <div className="flex items-center justify-between border-b border-neutral-800/80 px-5 py-3">
-                                <div className="flex items-center gap-2.5">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
-                                    <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                        SERVER STATUS
-                                    </span>
-                                </div>
+                        <Panel
+                            label="SERVER STATUS"
+                            headerRight={
                                 <span className="text-[10px] tracking-[0.2em] text-lime">
                                     LIVE
                                 </span>
-                            </div>
-
-                            {/* Status rows */}
-                            <div className="divide-y divide-neutral-800/50">
-                                {[
-                                    {
-                                        label: "REGION",
-                                        value: "US-EAST",
-                                    },
-                                    {
-                                        label: "PLAYERS ONLINE",
-                                        value: "347 active",
-                                        accent: true,
-                                    },
-                                    {
-                                        label: "MATCHES LIVE",
-                                        value: "28 in progress",
-                                        accent: true,
-                                    },
-                                    {
-                                        label: "LAST SEASON",
-                                        value: "Season 3 \u2014 COMPLETE",
-                                    },
-                                ].map((item) => (
-                                    <div key={item.label} className="px-5 py-4">
-                                        <span className="text-[9px] tracking-[0.3em] text-neutral-700">
-                                            {item.label}
+                            }
+                            footer={
+                                <div className="px-5 py-4">
+                                    <div className="flex items-center gap-3">
+                                        <span className="border border-lime/30 px-2.5 py-1 text-[9px] tracking-[0.25em] text-lime">
+                                            LIVE
                                         </span>
-                                        <p
-                                            className={`mt-1.5 text-xs ${
-                                                item.accent
-                                                    ? "text-lime"
-                                                    : "text-neutral-400"
-                                            }`}
-                                        >
-                                            {item.value}
-                                        </p>
+                                        <span className="text-[9px] tracking-[0.15em] text-neutral-800">
+                                            all systems operational
+                                        </span>
                                     </div>
-                                ))}
-                            </div>
-
-                            {/* Panel footer */}
-                            <div className="border-t border-neutral-800/80 px-5 py-4">
-                                <div className="flex items-center gap-3">
-                                    <span className="border border-lime/30 px-2.5 py-1 text-[9px] tracking-[0.25em] text-lime">
-                                        LIVE
-                                    </span>
-                                    <span className="text-[9px] tracking-[0.15em] text-neutral-800">
-                                        all systems operational
-                                    </span>
                                 </div>
-                            </div>
-                        </div>
+                            }
+                        >
+                            <Panel.Rows>
+                                <Panel.Row
+                                    label="REGION"
+                                    value="US-EAST"
+                                />
+                                <Panel.Row
+                                    label="PLAYERS ONLINE"
+                                    value="347 active"
+                                    accent
+                                />
+                                <Panel.Row
+                                    label="MATCHES LIVE"
+                                    value="28 in progress"
+                                    accent
+                                />
+                                <Panel.Row
+                                    label="LAST SEASON"
+                                    value="Season 3 \u2014 COMPLETE"
+                                />
+                            </Panel.Rows>
+                        </Panel>
 
                         {/* Decorative text below panel */}
                         <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">

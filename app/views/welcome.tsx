@@ -1,4 +1,5 @@
 import { Logo } from "~/components/logo";
+import { Panel } from "~/components/panel";
 
 type WelcomeProps = {
     login: () => void,
@@ -82,20 +83,27 @@ export function Welcome({ login, signUp, practice }: WelcomeProps) {
                     </div>
 
                     {/* Queue terminal */}
-                    <div className="self-start border border-neutral-800/80 bg-[#0a0a0a]">
-                        <div className="flex items-center justify-between border-b border-neutral-800/80 px-4 py-3">
-                            <div className="flex items-center gap-2.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
-                                <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                    PLAYERS ONLINE NOW
-                                </span>
-                            </div>
+                    <Panel
+                        label="PLAYERS ONLINE NOW"
+                        headerRight={
                             <span className="text-[10px] tabular-nums tracking-[0.2em] text-neutral-600">
                                 111
                             </span>
-                        </div>
-
-                        <div className="divide-y divide-neutral-800/50">
+                        }
+                        footer={
+                            <div className="p-3">
+                                <button
+                                    type="button"
+                                    className="w-full py-3 text-[10px] tracking-[0.3em] text-neutral-600 transition-colors hover:text-lime"
+                                    onClick={practice}
+                                >
+                                    PRACTICE {"\u2192"}
+                                </button>
+                            </div>
+                        }
+                        className="self-start"
+                    >
+                        <Panel.Rows>
                             {[
                                 {
                                     label: "FORMAT",
@@ -110,27 +118,14 @@ export function Welcome({ login, signUp, practice }: WelcomeProps) {
                                     value: "Lobbies for friends",
                                 },
                             ].map((item) => (
-                                <div key={item.label} className="px-4 py-4">
-                                    <span className="text-[9px] tracking-[0.3em] text-neutral-700">
-                                        {item.label}
-                                    </span>
-                                    <p className="mt-1.5 text-xs text-neutral-400">
-                                        {item.value}
-                                    </p>
-                                </div>
+                                <Panel.Row
+                                    key={item.label}
+                                    label={item.label}
+                                    value={item.value}
+                                />
                             ))}
-                        </div>
-
-                        <div className="border-t border-neutral-800/80 p-3">
-                            <button
-                                type="button"
-                                className="w-full py-3 text-[10px] tracking-[0.3em] text-neutral-600 transition-colors hover:text-lime"
-                                onClick={practice}
-                            >
-                                PRACTICE {"\u2192"}
-                            </button>
-                        </div>
-                    </div>
+                        </Panel.Rows>
+                    </Panel>
                 </section>
             </div>
         </main>

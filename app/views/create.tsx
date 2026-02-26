@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Nav } from "~/components/nav";
+import { Panel } from "~/components/panel";
 
 /* ─── Game Mode Definitions ─── */
 const GAME_MODES = [
@@ -206,31 +207,6 @@ function PlayerStepper({
     );
 }
 
-/* ─── Config Summary Row ─── */
-function ConfigRow({
-    label,
-    value,
-    accent,
-}: {
-    label: string;
-    value: string;
-    accent?: boolean;
-}) {
-    return (
-        <div className="px-4 py-4 sm:px-5">
-            <span className="text-[9px] tracking-[0.3em] text-neutral-700">
-                {label}
-            </span>
-            <p
-                className={`mt-1.5 text-xs ${accent ? "text-lime" : "text-neutral-400"
-                    }`}
-            >
-                {value}
-            </p>
-        </div>
-    );
-}
-
 /* ═══════════════════════════════════════════════════════
    CREATE MATCH VIEW
    ═══════════════════════════════════════════════════════ */
@@ -375,40 +351,48 @@ export function Create() {
 
                     {/* ──── Right: Match Config Summary Panel ──── */}
                     <div className="self-start lg:sticky lg:top-8">
-                        <div className="border border-neutral-800/80 bg-[#0a0a0a]">
-                            {/* Panel header */}
-                            <div className="flex items-center justify-between border-b border-neutral-800/80 px-4 py-3 sm:px-5">
-                                <div className="flex items-center gap-2.5">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
-                                    <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                        MATCH CONFIG
-                                    </span>
-                                </div>
+                        <Panel
+                            label="MATCH CONFIG"
+                            headerRight={
                                 <span className="text-[10px] tracking-[0.2em] text-neutral-700">
                                     PREVIEW
                                 </span>
-                            </div>
-
-                            {/* Config rows */}
-                            <div className="divide-y divide-neutral-800/50">
-                                <ConfigRow
+                            }
+                            footer={
+                                <div className="px-4 py-4 sm:px-5">
+                                    <span className="text-[9px] tracking-[0.3em] text-neutral-700">
+                                        LOBBY CODE
+                                    </span>
+                                    <div className="mt-2 flex items-center gap-3">
+                                        <span className="font-display text-lg font-bold tracking-widest text-neutral-700">
+                                            - - - - - -
+                                        </span>
+                                        <span className="text-[9px] tracking-[0.15em] text-neutral-800">
+                                            generated on create
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                        >
+                            <Panel.Rows>
+                                <Panel.Row
                                     label="MODE"
                                     value={selectedMode.label}
                                     accent
                                 />
-                                <ConfigRow
+                                <Panel.Row
                                     label="MAX PLAYERS"
                                     value={`${playerCount} players`}
                                     accent
                                 />
-                                <ConfigRow
+                                <Panel.Row
                                     label="DIFFICULTY"
                                     value={
                                         difficulty.charAt(0).toUpperCase() +
                                         difficulty.slice(1)
                                     }
                                 />
-                                <ConfigRow
+                                <Panel.Row
                                     label="VISIBILITY"
                                     value={
                                         visibility === "private"
@@ -416,23 +400,8 @@ export function Create() {
                                             : "Public \u2014 Open Lobby"
                                     }
                                 />
-                            </div>
-
-                            {/* Panel footer — decorative lobby code preview */}
-                            <div className="border-t border-neutral-800/80 px-4 py-4 sm:px-5">
-                                <span className="text-[9px] tracking-[0.3em] text-neutral-700">
-                                    LOBBY CODE
-                                </span>
-                                <div className="mt-2 flex items-center gap-3">
-                                    <span className="font-display text-lg font-bold tracking-widest text-neutral-700">
-                                        - - - - - -
-                                    </span>
-                                    <span className="text-[9px] tracking-[0.15em] text-neutral-800">
-                                        generated on create
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
+                            </Panel.Rows>
+                        </Panel>
 
                         {/* Decorative text below panel */}
                         <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">

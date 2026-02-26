@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Logo } from "~/components/logo";
 import { InputField } from "~/components/input-field";
+import { Panel } from "~/components/panel";
 
 export function SignUp() {
     const [email, setEmail] = useState("");
@@ -72,20 +73,14 @@ export function SignUp() {
                                 CREDENTIALS
                             </p>
 
-                            <div className="border border-neutral-800/80 bg-[#0a0a0a]">
-                                {/* Panel header */}
-                                <div className="flex items-center justify-between border-b border-neutral-800/80 px-5 py-3">
-                                    <div className="flex items-center gap-2.5">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
-                                        <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                            NEW PLAYER
-                                        </span>
-                                    </div>
+                            <Panel
+                                label="NEW PLAYER"
+                                headerRight={
                                     <span className="text-[10px] tracking-[0.2em] text-neutral-800">
                                         3 FIELDS
                                     </span>
-                                </div>
-
+                                }
+                            >
                                 {/* Form fields */}
                                 <div className="space-y-5 px-5 py-5">
                                     <InputField
@@ -144,7 +139,7 @@ export function SignUp() {
                                         </p>
                                     </div>
                                 </div>
-                            </div>
+                            </Panel>
                         </section>
 
                         {/* Already have an account */}
@@ -163,60 +158,40 @@ export function SignUp() {
 
                     {/* ──── Right: Info Panel ──── */}
                     <div className="self-start lg:sticky lg:top-8">
-                        <div className="border border-neutral-800/80 bg-[#0a0a0a]">
-                            {/* Panel header */}
-                            <div className="flex items-center justify-between border-b border-neutral-800/80 px-5 py-3">
-                                <div className="flex items-center gap-2.5">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
-                                    <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                        INTEL
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Feature rows */}
-                            <div className="divide-y divide-neutral-800/50">
-                                {[
-                                    {
-                                        label: "BATTLE FORMATS",
-                                        value: "Elimination, points, and instant-fail modes",
-                                    },
-                                    {
-                                        label: "LEADERBOARDS",
-                                        value: "Ranked seasons with global standings",
-                                    },
-                                    {
-                                        label: "PRIVATE LOBBIES",
-                                        value: "Create and share invite codes with friends",
-                                    },
-                                    {
-                                        label: "PLAYER STATS",
-                                        value: "WPM, accuracy, and match history tracked",
-                                    },
-                                ].map((item) => (
-                                    <div key={item.label} className="px-5 py-4">
-                                        <span className="text-[9px] tracking-[0.3em] text-neutral-700">
-                                            {item.label}
+                        <Panel
+                            label="INTEL"
+                            footer={
+                                <div className="px-5 py-4">
+                                    <div className="flex items-center gap-3">
+                                        <span className="border border-lime/30 px-2.5 py-1 text-[9px] tracking-[0.25em] text-lime">
+                                            FREE
                                         </span>
-                                        <p className="mt-1.5 text-xs text-neutral-400">
-                                            {item.value}
-                                        </p>
+                                        <span className="text-[9px] tracking-[0.15em] text-neutral-800">
+                                            no credit card required
+                                        </span>
                                     </div>
-                                ))}
-                            </div>
-
-                            {/* Panel footer */}
-                            <div className="border-t border-neutral-800/80 px-5 py-4">
-                                <div className="flex items-center gap-3">
-                                    <span className="border border-lime/30 px-2.5 py-1 text-[9px] tracking-[0.25em] text-lime">
-                                        FREE
-                                    </span>
-                                    <span className="text-[9px] tracking-[0.15em] text-neutral-800">
-                                        no credit card required
-                                    </span>
                                 </div>
-                            </div>
-                        </div>
+                            }
+                        >
+                            <Panel.Rows>
+                                <Panel.Row
+                                    label="BATTLE FORMATS"
+                                    value="Elimination, points, and instant-fail modes"
+                                />
+                                <Panel.Row
+                                    label="LEADERBOARDS"
+                                    value="Ranked seasons with global standings"
+                                />
+                                <Panel.Row
+                                    label="PRIVATE LOBBIES"
+                                    value="Create and share invite codes with friends"
+                                />
+                                <Panel.Row
+                                    label="PLAYER STATS"
+                                    value="WPM, accuracy, and match history tracked"
+                                />
+                            </Panel.Rows>
+                        </Panel>
 
                         {/* Decorative text below panel */}
                         <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">
