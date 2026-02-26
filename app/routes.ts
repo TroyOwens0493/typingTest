@@ -9,5 +9,5 @@ export default [
     route("practice", "routes/practice.tsx"),
     route("create", "routes/create.tsx"),
     route("join", "routes/join.tsx"),
-    route("profile", "routes/profile"),
+    route("profile", "routes/profile.tsx"),
 ] satisfies RouteConfig;
