@@ -1,4 +1,5 @@
 import { Nav } from "~/components/nav";
+import { Panel } from "~/components/panel";
 
 /*
  * Mock data — replace with real data once the API / data layer is wired up.
@@ -32,12 +33,10 @@ function StatCard({
     label,
     value,
     accent,
-    sub,
 }: {
     label: string;
     value: string | number;
     accent?: boolean;
-    sub?: string;
 }) {
     return (
         <div className="border border-neutral-800/80 bg-[#0a0a0a] px-5 py-5">
@@ -51,11 +50,6 @@ function StatCard({
             >
                 {value}
             </p>
-            {sub && (
-                <span className="mt-1.5 block text-[10px] tracking-[0.15em] text-neutral-700">
-                    {sub}
-                </span>
-            )}
         </div>
     );
 }
@@ -109,7 +103,6 @@ export function Main() {
                         <StatCard
                             label="GAMES PLAYED"
                             value={STATS.gamesPlayed}
-                            sub="total matches"
                         />
                         <StatCard
                             label="GAMES WON"
@@ -124,13 +117,11 @@ export function Main() {
                             label="AVG WPM"
                             value={STATS.avgWpm}
                             accent
-                            sub="words per minute"
                         />
                         <StatCard
                             label="PEAK WPM"
                             value={STATS.peakWpm}
                             accent
-                            sub="personal best"
                         />
                         <StatCard
                             label="TOTAL TIME"
@@ -139,27 +130,20 @@ export function Main() {
                         <StatCard
                             label="AVG ACCURACY"
                             value={`${STATS.avgAccuracy}%`}
-                            sub="correct keystrokes"
                         />
                     </div>
                 </section>
 
                 {/* ─── Recent Sessions ─── */}
                 <section>
-                    <div className="border border-neutral-800/80 bg-[#0a0a0a]">
-                        {/* Table header bar */}
-                        <div className="flex items-center justify-between border-b border-neutral-800/80 px-5 py-3">
-                            <div className="flex items-center gap-2.5">
-                                <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
-                                <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                    RECENT SESSIONS
-                                </span>
-                            </div>
+                    <Panel
+                        label="RECENT SESSIONS"
+                        headerRight={
                             <span className="text-[10px] tabular-nums tracking-[0.2em] text-neutral-600">
                                 LAST {RECENT_SESSIONS.length}
                             </span>
-                        </div>
-
+                        }
+                    >
                         {/* Column labels */}
                         <div className="grid grid-cols-[2.5rem_5.5rem_4rem_4.5rem_4rem_1fr] items-center gap-2 border-b border-neutral-800/50 px-5 py-2.5 text-[9px] tracking-[0.25em] text-neutral-700">
                             <span>#</span>
@@ -207,17 +191,7 @@ export function Main() {
                                 </div>
                             ))}
                         </div>
-
-                        {/* Footer */}
-                        <div className="border-t border-neutral-800/80 p-3">
-                            <button
-                                type="button"
-                                className="w-full py-2.5 text-[10px] tracking-[0.3em] text-neutral-600 transition-colors hover:text-lime"
-                            >
-                                VIEW ALL SESSIONS {"\u2192"}
-                            </button>
-                        </div>
-                    </div>
+                    </Panel>
                 </section>
             </div>
 

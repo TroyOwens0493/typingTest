@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { Nav } from "~/components/nav";
+import { Panel } from "~/components/panel";
 
 /* ─── Types ─── */
 type JoinMode = "random" | "code";
@@ -137,31 +138,6 @@ function CodeCell({
     );
 }
 
-/* ─── Queue Status Row ─── */
-function StatusRow({
-    label,
-    value,
-    accent,
-}: {
-    label: string;
-    value: string;
-    accent?: boolean;
-}) {
-    return (
-        <div className="px-4 py-4 sm:px-5">
-            <span className="text-[9px] tracking-[0.3em] text-neutral-700">
-                {label}
-            </span>
-            <p
-                className={`mt-1.5 text-xs ${accent ? "text-lime" : "text-neutral-400"
-                    }`}
-            >
-                {value}
-            </p>
-        </div>
-    );
-}
-
 /* ═══════════════════════════════════════════════════════
    JOIN MATCH VIEW
    ═══════════════════════════════════════════════════════ */
@@ -278,7 +254,7 @@ export function Join() {
                     </h1>
                     <p className="mt-4 max-w-md text-sm leading-relaxed text-neutral-600">
                         Joing a random match or use a lobby code from a
-                        friend. The arena is waiting.
+                        friend.
                     </p>
                 </div>
 
@@ -316,26 +292,11 @@ export function Join() {
                             <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
                                 ENTER LOBBY CODE
                             </p>
-                            <div
-                                className={`border bg-[#0a0a0a] transition-all ${joinMode === "code"
-                                    ? "border-neutral-800/80"
-                                    : "border-neutral-800/40 opacity-50"
-                                    }`}
-                            >
-                                {/* Panel header */}
-                                <div className="flex items-center justify-between border-b border-neutral-800/80 px-4 py-3 sm:px-5">
-                                    <div className="flex items-center gap-2.5">
-                                        <span
-                                            className={`h-1.5 w-1.5 rounded-full transition-colors ${joinMode === "code"
-                                                ? "bg-lime animate-pulse-slow"
-                                                : "bg-neutral-700"
-                                                }`}
-                                        />
-                                        <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                            LOBBY CODE
-                                        </span>
-                                    </div>
-                                    {codeDisplay.length > 0 && (
+                            <Panel
+                                label="LOBBY CODE"
+                                active={joinMode === "code"}
+                                headerRight={
+                                    codeDisplay.length > 0 ? (
                                         <button
                                             type="button"
                                             onClick={handleClear}
@@ -343,9 +304,25 @@ export function Join() {
                                         >
                                             CLEAR
                                         </button>
-                                    )}
-                                </div>
-
+                                    ) : undefined
+                                }
+                                footer={
+                                    <div className="px-4 py-4 sm:px-5">
+                                        <button
+                                            type="button"
+                                            disabled={!codeComplete}
+                                            className={`w-full py-3.5 text-[11px] font-bold tracking-[0.2em] transition-all ${codeComplete
+                                                ? "bg-lime text-black hover:bg-[#d4ff4d]"
+                                                : "border border-neutral-800/80 bg-transparent text-neutral-700 cursor-not-allowed"
+                                                }`}
+                                        >
+                                            {codeComplete
+                                                ? `JOIN \u2014 ${codeDisplay.slice(0, 3)}-${codeDisplay.slice(3)}`
+                                                : "ENTER CODE TO JOIN"}
+                                        </button>
+                                    </div>
+                                }
+                            >
                                 {/* Code inputs */}
                                 <div className="px-4 py-8 sm:px-5 sm:py-10">
                                     <div className="flex items-center justify-center gap-2 sm:gap-3">
@@ -389,23 +366,7 @@ export function Join() {
                                         {"// 6-character alphanumeric code"}
                                     </p>
                                 </div>
-
-                                {/* Panel footer with join button */}
-                                <div className="border-t border-neutral-800/80 px-4 py-4 sm:px-5">
-                                    <button
-                                        type="button"
-                                        disabled={!codeComplete}
-                                        className={`w-full py-3.5 text-[11px] font-bold tracking-[0.2em] transition-all ${codeComplete
-                                            ? "bg-lime text-black hover:bg-[#d4ff4d]"
-                                            : "border border-neutral-800/80 bg-transparent text-neutral-700 cursor-not-allowed"
-                                            }`}
-                                    >
-                                        {codeComplete
-                                            ? `JOIN \u2014 ${codeDisplay.slice(0, 3)}-${codeDisplay.slice(3)}`
-                                            : "ENTER CODE TO JOIN"}
-                                    </button>
-                                </div>
-                            </div>
+                            </Panel>
                         </section>
 
                         {/* Random queue CTA (shown when random is selected) */}
@@ -426,52 +387,35 @@ export function Join() {
 
                     {/* ──── Right: Queue Status Panel ──── */}
                     <div className="self-start lg:sticky lg:top-8">
-                        <div className="border border-neutral-800/80 bg-[#0a0a0a]">
-                            {/* Panel header */}
-                            <div className="flex items-center justify-between border-b border-neutral-800/80 px-4 py-3 sm:px-5">
-                                <div className="flex items-center gap-2.5">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
-                                    <span className="text-[10px] tracking-[0.3em] text-neutral-600">
-                                        QUEUE STATUS
-                                    </span>
-                                </div>
+                        <Panel
+                            label="QUEUE STATUS"
+                            headerRight={
                                 <span className="text-[10px] tracking-[0.2em] text-lime">
                                     LIVE
                                 </span>
-                            </div>
-
-                            {/* Status rows */}
-                            <div className="divide-y divide-neutral-800/50">
-                                <StatusRow
+                            }
+                        >
+                            <Panel.Rows>
+                                <Panel.Row
                                     label="LOBBIES OPEN"
                                     value="12 active"
                                     accent
                                 />
-                                <StatusRow
+                                <Panel.Row
                                     label="PLAYERS QUEUED"
                                     value="47 waiting"
                                     accent
                                 />
-                                <StatusRow
+                                <Panel.Row
                                     label="AVG WAIT TIME"
                                     value="~8 seconds"
                                 />
-                                <StatusRow
+                                <Panel.Row
                                     label="YOUR REGION"
                                     value="US-EAST"
                                 />
-                            </div>
-
-                            {/* Panel footer */}
-                            <div className="border-t border-neutral-800/80 p-3">
-                                <button
-                                    type="button"
-                                    className="w-full py-3 text-[10px] tracking-[0.3em] text-neutral-600 transition-colors hover:text-lime"
-                                >
-                                    RECENT MATCHES {"\u2192"}
-                                </button>
-                            </div>
-                        </div>
+                            </Panel.Rows>
+                        </Panel>
 
                         {/* Decorative text below panel */}
                         <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">
