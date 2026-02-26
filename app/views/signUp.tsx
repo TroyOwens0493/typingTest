@@ -77,7 +77,7 @@ export function SignUp() {
                                 label="NEW PLAYER"
                                 headerRight={
                                     <span className="text-[10px] tracking-[0.2em] text-neutral-800">
-                                        3 FIELDS
+                                        PERSONAL INFO
                                     </span>
                                 }
                             >
@@ -177,10 +177,6 @@ export function SignUp() {
                                 <Panel.Row
                                     label="BATTLE FORMATS"
                                     value="Elimination, points, and instant-fail modes"
-                                />
-                                <Panel.Row
-                                    label="LEADERBOARDS"
-                                    value="Ranked seasons with global standings"
                                 />
                                 <Panel.Row
                                     label="PRIVATE LOBBIES"

@@ -19,7 +19,7 @@ const GAME_MODES = [
     {
         id: "instant-fail" as const,
         label: "INSTANT FAIL",
-        description: "One mistake and you're out. Pure precision.",
+        description: "One mistake and you're out.",
         tag: "ZERO MARGIN",
     },
 ] as const;
@@ -43,16 +43,16 @@ function ModeCard({
             type="button"
             onClick={onSelect}
             className={`group relative border text-left transition-all ${selected
-                    ? "border-lime bg-lime-faint"
-                    : "border-neutral-800/80 bg-[#0a0a0a] hover:border-neutral-700"
+                ? "border-lime bg-lime-faint"
+                : "border-neutral-800/80 bg-[#0a0a0a] hover:border-neutral-700"
                 }`}
         >
             {/* Selection indicator */}
             <div className="absolute right-3 top-3">
                 <span
                     className={`inline-block h-2 w-2 rounded-full border transition-all ${selected
-                            ? "border-lime bg-lime shadow-[0_0_6px_rgba(190,255,0,0.4)]"
-                            : "border-neutral-700 bg-transparent"
+                        ? "border-lime bg-lime shadow-[0_0_6px_rgba(190,255,0,0.4)]"
+                        : "border-neutral-700 bg-transparent"
                         }`}
                 />
             </div>
@@ -99,10 +99,10 @@ function ToggleGroup<T extends string>({
                     type="button"
                     onClick={() => onChange(opt.id)}
                     className={`relative px-5 py-3 text-[10px] font-medium tracking-[0.2em] transition-all sm:px-6 sm:text-[11px] ${i === 0
-                            ? "border border-r-0"
-                            : i === options.length - 1
-                                ? "border border-l-0"
-                                : "border-y border-r-0"
+                        ? "border border-r-0"
+                        : i === options.length - 1
+                            ? "border border-l-0"
+                            : "border-y border-r-0"
                         } ${value === opt.id
                             ? "bg-lime text-black border-lime z-10"
                             : "border-neutral-800/80 bg-[#0a0a0a] text-neutral-600 hover:text-neutral-400"
@@ -150,7 +150,7 @@ function PlayerStepper({
                         {value}
                     </span>
                     <span className="mt-1 text-[9px] tracking-[0.3em] text-neutral-700">
-                        PLAYERS
+                        PLAYERS MAX
                     </span>
                 </div>
 
@@ -179,14 +179,14 @@ function PlayerStepper({
                         >
                             <span
                                 className={`block h-2 w-2 rounded-full border transition-all ${value === m
-                                        ? "border-lime bg-lime"
-                                        : "border-neutral-700 bg-neutral-900 group-hover:border-neutral-500"
+                                    ? "border-lime bg-lime"
+                                    : "border-neutral-700 bg-neutral-900 group-hover:border-neutral-500"
                                     }`}
                             />
                             <span
                                 className={`absolute left-1/2 top-full mt-2 -translate-x-1/2 text-[9px] tabular-nums tracking-[0.15em] transition-colors ${value === m
-                                        ? "text-lime"
-                                        : "text-neutral-700 group-hover:text-neutral-500"
+                                    ? "text-lime"
+                                    : "text-neutral-700 group-hover:text-neutral-500"
                                     }`}
                             >
                                 {m}
@@ -246,7 +246,7 @@ export function Create() {
                     </h1>
                     <p className="mt-4 max-w-md text-sm leading-relaxed text-neutral-600">
                         Configure your match and share the lobby code with
-                        friends. You call the rules.
+                        friends.
                     </p>
                 </div>
 
@@ -357,21 +357,6 @@ export function Create() {
                                 <span className="text-[10px] tracking-[0.2em] text-neutral-700">
                                     PREVIEW
                                 </span>
-                            }
-                            footer={
-                                <div className="px-4 py-4 sm:px-5">
-                                    <span className="text-[9px] tracking-[0.3em] text-neutral-700">
-                                        LOBBY CODE
-                                    </span>
-                                    <div className="mt-2 flex items-center gap-3">
-                                        <span className="font-display text-lg font-bold tracking-widest text-neutral-700">
-                                            - - - - - -
-                                        </span>
-                                        <span className="text-[9px] tracking-[0.15em] text-neutral-800">
-                                            generated on create
-                                        </span>
-                                    </div>
-                                </div>
                             }
                         >
                             <Panel.Rows>

@@ -54,8 +54,7 @@ export function Login() {
                         Back in the fight.
                     </h1>
                     <p className="mt-4 max-w-md text-sm leading-relaxed text-neutral-600">
-                        Log in to pick up where you left off. Your stats,
-                        rank, and lobby are waiting.
+                        Log in to pick up where you left off.
                     </p>
                 </div>
 
@@ -72,7 +71,7 @@ export function Login() {
                                 label="RETURNING PLAYER"
                                 headerRight={
                                     <span className="text-[10px] tracking-[0.2em] text-neutral-800">
-                                        2 FIELDS
+                                        ACCOUNT INFO
                                     </span>
                                 }
                             >
@@ -128,11 +127,6 @@ export function Login() {
                     <div className="self-start lg:sticky lg:top-8">
                         <Panel
                             label="SERVER STATUS"
-                            headerRight={
-                                <span className="text-[10px] tracking-[0.2em] text-lime">
-                                    LIVE
-                                </span>
-                            }
                             footer={
                                 <div className="px-5 py-4">
                                     <div className="flex items-center gap-3">
@@ -159,11 +153,6 @@ export function Login() {
                                 <Panel.Row
                                     label="MATCHES LIVE"
                                     value="28 in progress"
-                                    accent
-                                />
-                                <Panel.Row
-                                    label="LAST SEASON"
-                                    value="Season 3 \u2014 COMPLETE"
                                 />
                             </Panel.Rows>
                         </Panel>

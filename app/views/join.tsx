@@ -254,7 +254,7 @@ export function Join() {
                     </h1>
                     <p className="mt-4 max-w-md text-sm leading-relaxed text-neutral-600">
                         Joing a random match or use a lobby code from a
-                        friend. The arena is waiting.
+                        friend.
                     </p>
                 </div>
 
@@ -393,16 +393,6 @@ export function Join() {
                                 <span className="text-[10px] tracking-[0.2em] text-lime">
                                     LIVE
                                 </span>
-                            }
-                            footer={
-                                <div className="p-3">
-                                    <button
-                                        type="button"
-                                        className="w-full py-3 text-[10px] tracking-[0.3em] text-neutral-600 transition-colors hover:text-lime"
-                                    >
-                                        RECENT MATCHES {"\u2192"}
-                                    </button>
-                                </div>
                             }
                         >
                             <Panel.Rows>

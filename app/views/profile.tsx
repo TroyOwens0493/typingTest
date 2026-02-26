@@ -117,8 +117,7 @@ export function Profile() {
                         Profile
                     </h1>
                     <p className="mt-4 max-w-md text-sm leading-relaxed text-neutral-600">
-                        Manage your account settings, update your credentials,
-                        and keep your identity locked in.
+                        Manage your account settings, and update your credentials.
                     </p>
                 </div>
 
@@ -313,18 +312,6 @@ export function Profile() {
                     <div className="self-start lg:sticky lg:top-8">
                         <Panel
                             label="ACCOUNT OVERVIEW"
-                            footer={
-                                <div className="px-5 py-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="border border-lime/30 px-2.5 py-1 text-[9px] tracking-[0.25em] text-lime">
-                                            {ACCOUNT.rank}
-                                        </span>
-                                        <span className="text-[9px] tracking-[0.15em] text-neutral-800">
-                                            current standing
-                                        </span>
-                                    </div>
-                                </div>
-                            }
                         >
                             {/* Account summary rows */}
                             <div className="divide-y divide-neutral-800/50">
