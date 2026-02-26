@@ -6,8 +6,7 @@ import { ProfileIcon } from "./svgs/profile-icon";
 const NAV_ITEMS = [
     { label: "HOME", href: "/home" },
     { label: "CREATE MATCH", href: "/create" },
-    { label: "JOIN RANDOM", href: "/random" },
-    { label: "JOIN FRIENDS", href: "/join" },
+    { label: "JOIN", href: "/join" },
     { label: "PRACTICE", href: "/practice" },
 ];
 
