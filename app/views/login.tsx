@@ -1,6 +1,222 @@
+import { useState } from "react";
+import { Link } from "react-router";
+import { Logo } from "~/components/logo";
+import { InputField } from "~/components/input-field";
+
 export function Login() {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+
+    const canSubmit = email.length > 0 && password.length > 0;
+
+    function handleSubmit() {
+        if (!canSubmit) return;
+        // TODO: wire up to API
+    }
+
     return (
-        <main>
+        <main className="relative flex min-h-screen flex-col bg-[#050505] font-mono text-neutral-400">
+            {/* Scanline texture overlay */}
+            <div
+                className="pointer-events-none fixed inset-0 z-50 opacity-[0.02]"
+                style={{
+                    backgroundImage:
+                        "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.08) 2px, rgba(255,255,255,0.08) 4px)",
+                }}
+            />
+
+            {/* Minimal pre-auth header */}
+            <header className="relative z-10 flex items-center justify-between px-6 py-6 lg:px-12">
+                <Link to="/">
+                    <Logo />
+                </Link>
+                <div className="flex items-center gap-1">
+                    <Link
+                        to="/signup"
+                        className="border border-neutral-800 px-5 py-2 text-[11px] tracking-[0.15em] text-white transition-all hover:border-lime hover:text-lime"
+                    >
+                        SIGN UP
+                    </Link>
+                </div>
+            </header>
+
+            {/* ─── Content ─── */}
+            <div className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-6 pb-16 pt-10 lg:px-12 lg:pt-16">
+                {/* Page header */}
+                <div className="mb-12">
+                    <p className="mb-4 text-[11px] tracking-[0.3em] text-lime">
+                        &gt; WELCOME BACK
+                        <span className="animate-blink">_</span>
+                    </p>
+
+                    <h1 className="font-display text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1] tracking-tight text-white">
+                        Back in the fight.
+                    </h1>
+                    <p className="mt-4 max-w-md text-sm leading-relaxed text-neutral-600">
+                        Log in to pick up where you left off. Your stats,
+                        rank, and lobby are waiting.
+                    </p>
+                </div>
+
+                {/* ─── Two-column layout ─── */}
+                <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12">
+                    {/* ──── Left: Login Form ──── */}
+                    <div className="space-y-12">
+                        <section>
+                            <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
+                                CREDENTIALS
+                            </p>
+
+                            <div className="border border-neutral-800/80 bg-[#0a0a0a]">
+                                {/* Panel header */}
+                                <div className="flex items-center justify-between border-b border-neutral-800/80 px-5 py-3">
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
+                                        <span className="text-[10px] tracking-[0.3em] text-neutral-600">
+                                            RETURNING PLAYER
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] tracking-[0.2em] text-neutral-800">
+                                        2 FIELDS
+                                    </span>
+                                </div>
+
+                                {/* Form fields */}
+                                <div className="space-y-5 px-5 py-5">
+                                    <InputField
+                                        label="EMAIL"
+                                        type="email"
+                                        value={email}
+                                        onChange={setEmail}
+                                        placeholder="you@example.com"
+                                    />
+                                    <InputField
+                                        label="PASSWORD"
+                                        type="password"
+                                        value={password}
+                                        onChange={setPassword}
+                                        placeholder="enter your password"
+                                    />
+
+                                    <div className="pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={handleSubmit}
+                                            disabled={!canSubmit}
+                                            className="w-full bg-lime py-3.5 text-[11px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d] disabled:cursor-not-allowed disabled:opacity-30 sm:w-auto sm:px-8"
+                                        >
+                                            LOG IN
+                                        </button>
+                                        <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
+                                            {"// you'll be redirected to your dashboard"}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* Don't have an account */}
+                        <div>
+                            <p className="text-[11px] tracking-[0.1em] text-neutral-600">
+                                Don&rsquo;t have an account?{" "}
+                                <Link
+                                    to="/signup"
+                                    className="tracking-[0.15em] text-neutral-400 transition-colors hover:text-lime"
+                                >
+                                    SIGN UP &rarr;
+                                </Link>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* ──── Right: Server Status Panel ──── */}
+                    <div className="self-start lg:sticky lg:top-8">
+                        <div className="border border-neutral-800/80 bg-[#0a0a0a]">
+                            {/* Panel header */}
+                            <div className="flex items-center justify-between border-b border-neutral-800/80 px-5 py-3">
+                                <div className="flex items-center gap-2.5">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
+                                    <span className="text-[10px] tracking-[0.3em] text-neutral-600">
+                                        SERVER STATUS
+                                    </span>
+                                </div>
+                                <span className="text-[10px] tracking-[0.2em] text-lime">
+                                    LIVE
+                                </span>
+                            </div>
+
+                            {/* Status rows */}
+                            <div className="divide-y divide-neutral-800/50">
+                                {[
+                                    {
+                                        label: "REGION",
+                                        value: "US-EAST",
+                                    },
+                                    {
+                                        label: "PLAYERS ONLINE",
+                                        value: "347 active",
+                                        accent: true,
+                                    },
+                                    {
+                                        label: "MATCHES LIVE",
+                                        value: "28 in progress",
+                                        accent: true,
+                                    },
+                                    {
+                                        label: "LAST SEASON",
+                                        value: "Season 3 \u2014 COMPLETE",
+                                    },
+                                ].map((item) => (
+                                    <div key={item.label} className="px-5 py-4">
+                                        <span className="text-[9px] tracking-[0.3em] text-neutral-700">
+                                            {item.label}
+                                        </span>
+                                        <p
+                                            className={`mt-1.5 text-xs ${
+                                                item.accent
+                                                    ? "text-lime"
+                                                    : "text-neutral-400"
+                                            }`}
+                                        >
+                                            {item.value}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Panel footer */}
+                            <div className="border-t border-neutral-800/80 px-5 py-4">
+                                <div className="flex items-center gap-3">
+                                    <span className="border border-lime/30 px-2.5 py-1 text-[9px] tracking-[0.25em] text-lime">
+                                        LIVE
+                                    </span>
+                                    <span className="text-[9px] tracking-[0.15em] text-neutral-800">
+                                        all systems operational
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Decorative text below panel */}
+                        <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">
+                            LOGIN / RETURNING PLAYER / SESSION
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom decorative bar */}
+            <div className="relative z-10 mt-auto flex items-center justify-between border-t border-neutral-800/50 px-6 py-3 lg:px-12">
+                <span className="text-[9px] tracking-[0.3em] text-neutral-800">
+                    ROYAL<span className="text-lime/30">TYPE</span>
+                    {" // LOGIN"}
+                </span>
+                <div className="flex items-center gap-4">
+                    <span className="text-[9px] tabular-nums tracking-[0.2em] text-neutral-800">
+                        v0.1.0
+                    </span>
+                </div>
+            </div>
         </main>
     );
 }
