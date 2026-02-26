@@ -27,7 +27,7 @@ function SettingRow({
     mono?: boolean;
 }) {
     return (
-        <div className="flex items-baseline justify-between gap-4 py-3.5">
+        <div className="flex items-baseline justify-between gap-4 px-4 py-3.5 sm:px-5">
             <span className="shrink-0 text-[9px] tracking-[0.3em] text-neutral-700">
                 {label}
             </span>
@@ -327,9 +327,9 @@ export function Profile() {
                             }
                         >
                             {/* Account summary rows */}
-                            <div className="divide-y divide-neutral-800/50 px-5">
+                            <div className="divide-y divide-neutral-800/50">
                                 {/* Avatar / identity block */}
-                                <div className="py-5">
+                                <div className="px-4 py-5 sm:px-5">
                                     <div className="flex h-12 w-12 items-center justify-center border border-neutral-800 bg-[#050505] font-display text-lg font-bold text-lime">
                                         {displayName.charAt(0).toUpperCase()}
                                     </div>
