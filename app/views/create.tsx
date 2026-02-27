@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { Nav } from "~/components/nav";
 import { Panel } from "~/components/panel";
+import { Footer } from "~/components/footer";
+import { InputField } from "~/components/input-field";
+import { useHoldRepeat } from "~/hooks/use-hold-repeat";
 
 /* ─── Game Mode Definitions ─── */
 const GAME_MODES = [
@@ -126,10 +129,36 @@ function PlayerStepper({
     const min = 2;
     const max = 50;
     const markers = [2, 10, 25, 50];
+    const [isEditing, setIsEditing] = useState(false);
+    const [inputValue, setInputValue] = useState("");
 
     function clamp(n: number) {
         return Math.max(min, Math.min(max, n));
     }
+
+    function startEdit() {
+        setInputValue(String(value));
+        setIsEditing(true);
+    }
+
+    function commitEdit() {
+        const parsed = parseInt(inputValue, 10);
+        if (!isNaN(parsed)) {
+            onChange(clamp(parsed));
+        }
+        setIsEditing(false);
+    }
+
+    function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (e.key === "Enter") {
+            commitEdit();
+        } else if (e.key === "Escape") {
+            setIsEditing(false);
+        }
+    }
+
+    const decrementHold = useHoldRepeat(() => onChange(clamp(value - 1)));
+    const incrementHold = useHoldRepeat(() => onChange(clamp(value + 1)));
 
     return (
         <div>
@@ -137,18 +166,38 @@ function PlayerStepper({
                 {/* Decrement */}
                 <button
                     type="button"
-                    onClick={() => onChange(clamp(value - 1))}
+                    {...decrementHold}
                     disabled={value <= min}
                     className="flex h-10 w-10 items-center justify-center border border-neutral-800/80 bg-[#0a0a0a] text-sm text-neutral-500 transition-all hover:border-neutral-700 hover:text-white disabled:cursor-not-allowed disabled:text-neutral-800 disabled:hover:border-neutral-800/80 sm:h-11 sm:w-11"
                 >
                     -
                 </button>
 
-                {/* Value display */}
+                {/* Value display / edit */}
                 <div className="flex min-w-[5rem] flex-col items-center sm:min-w-[6rem]">
-                    <span className="font-display text-3xl font-bold tabular-nums tracking-tight text-lime sm:text-4xl">
-                        {value}
-                    </span>
+                    {isEditing ? (
+                        <InputField
+                            label="MAX PLAYERS"
+                            hideLabel
+                            value={inputValue}
+                            onChange={(v) => setInputValue(v.replace(/\D/g, ""))}
+                            onKeyDown={handleKeyDown}
+                            onBlur={commitEdit}
+                            onFocus={(e) => e.target.select()}
+                            focusOnMount
+                            inputClassName="text-center font-display !text-2xl sm:!text-3xl font-bold tabular-nums tracking-tight !text-lime !py-1 !px-2"
+                        />
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={startEdit}
+                            className="group cursor-text"
+                        >
+                            <span className="font-display text-3xl font-bold tabular-nums tracking-tight text-lime transition-colors group-hover:text-white sm:text-4xl">
+                                {value}
+                            </span>
+                        </button>
+                    )}
                     <span className="mt-1 text-[9px] tracking-[0.3em] text-neutral-700">
                         PLAYERS MAX
                     </span>
@@ -157,7 +206,7 @@ function PlayerStepper({
                 {/* Increment */}
                 <button
                     type="button"
-                    onClick={() => onChange(clamp(value + 1))}
+                    {...incrementHold}
                     disabled={value >= max}
                     className="flex h-10 w-10 items-center justify-center border border-neutral-800/80 bg-[#0a0a0a] text-sm text-neutral-500 transition-all hover:border-neutral-700 hover:text-white disabled:cursor-not-allowed disabled:text-neutral-800 disabled:hover:border-neutral-800/80 sm:h-11 sm:w-11"
                 >
@@ -398,18 +447,7 @@ export function Create() {
                 </div>
             </div>
 
-            {/* Bottom decorative bar */}
-            <div className="relative z-10 mt-auto flex items-center justify-between border-t border-neutral-800/50 px-6 py-3 lg:px-12">
-                <span className="text-[9px] tracking-[0.3em] text-neutral-800">
-                    ROYAL<span className="text-lime/30">TYPE</span>
-                    {" // CREATE"}
-                </span>
-                <div className="flex items-center gap-4">
-                    <span className="text-[9px] tabular-nums tracking-[0.2em] text-neutral-800">
-                        v0.1.0
-                    </span>
-                </div>
-            </div>
+            <Footer label="CREATE" />
         </main>
     );
 }

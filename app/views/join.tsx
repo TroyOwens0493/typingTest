@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Nav } from "~/components/nav";
 import { Panel } from "~/components/panel";
+import { Footer } from "~/components/footer";
 
 /* ─── Types ─── */
 type JoinMode = "random" | "code";
@@ -92,6 +93,7 @@ function CodeCell({
     value,
     focused,
     filled,
+    disabled,
     inputRef,
     onInput,
     onKeyDown,
@@ -102,6 +104,7 @@ function CodeCell({
     value: string;
     focused: boolean;
     filled: boolean;
+    disabled?: boolean;
     inputRef: (el: HTMLInputElement | null) => void;
     onInput: (char: string) => void;
     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
@@ -118,6 +121,8 @@ function CodeCell({
             autoCapitalize="characters"
             maxLength={1}
             value={value}
+            disabled={disabled}
+            tabIndex={disabled ? -1 : undefined}
             aria-label={`Code digit ${index + 1}`}
             onFocus={onFocus}
             onPaste={onPaste}
@@ -128,11 +133,13 @@ function CodeCell({
                     onInput(char);
                 }
             }}
-            className={`h-14 w-11 border bg-[#0a0a0a] text-center font-display text-xl font-bold uppercase tracking-widest text-white caret-lime outline-none transition-all sm:h-16 sm:w-13 sm:text-2xl ${focused
-                ? "border-lime bg-lime-faint shadow-[0_0_8px_rgba(190,255,0,0.15)]"
-                : filled
-                    ? "border-neutral-600"
-                    : "border-neutral-800/80"
+            className={`h-14 w-11 border bg-[#0a0a0a] text-center font-display text-xl font-bold uppercase tracking-widest text-white caret-lime outline-none transition-all sm:h-16 sm:w-13 sm:text-2xl ${disabled
+                ? "cursor-not-allowed border-neutral-800/80"
+                : focused
+                    ? "border-lime bg-lime-faint shadow-[0_0_8px_rgba(190,255,0,0.15)]"
+                    : filled
+                        ? "border-neutral-600"
+                        : "border-neutral-800/80"
                 }`}
         />
     );
@@ -274,7 +281,11 @@ export function Join() {
                                     label="RANDOM"
                                     description="Queue into the next open lobby instantly."
                                     selected={joinMode === "random"}
-                                    onSelect={() => setJoinMode("random")}
+                                    onSelect={() => {
+                                        setJoinMode("random");
+                                        setLobbyCode(Array(6).fill(""));
+                                        setFocusedIndex(null);
+                                    }}
                                 />
                                 <JoinOptionCard
                                     id="code"
@@ -296,7 +307,7 @@ export function Join() {
                                 label="LOBBY CODE"
                                 active={joinMode === "code"}
                                 headerRight={
-                                    codeDisplay.length > 0 ? (
+                                    joinMode === "code" && codeDisplay.length > 0 ? (
                                         <button
                                             type="button"
                                             onClick={handleClear}
@@ -310,8 +321,8 @@ export function Join() {
                                     <div className="px-4 py-4 sm:px-5">
                                         <button
                                             type="button"
-                                            disabled={!codeComplete}
-                                            className={`w-full py-3.5 text-[11px] font-bold tracking-[0.2em] transition-all ${codeComplete
+                                            disabled={!codeComplete || joinMode === "random"}
+                                            className={`w-full py-3.5 text-[11px] font-bold tracking-[0.2em] transition-all ${codeComplete && joinMode === "code"
                                                 ? "bg-lime text-black hover:bg-[#d4ff4d]"
                                                 : "border border-neutral-800/80 bg-transparent text-neutral-700 cursor-not-allowed"
                                                 }`}
@@ -333,6 +344,7 @@ export function Join() {
                                                 value={lobbyCode[pos.idx]}
                                                 focused={focusedIndex === pos.idx}
                                                 filled={lobbyCode[pos.idx] !== ""}
+                                                disabled={joinMode === "random"}
                                                 inputRef={setRef(pos.idx)}
                                                 onInput={(c) => handleInput(pos.idx, c)}
                                                 onKeyDown={(e) => handleKeyDown(pos.idx, e)}
@@ -353,6 +365,7 @@ export function Join() {
                                                 value={lobbyCode[pos.idx]}
                                                 focused={focusedIndex === pos.idx}
                                                 filled={lobbyCode[pos.idx] !== ""}
+                                                disabled={joinMode === "random"}
                                                 inputRef={setRef(pos.idx)}
                                                 onInput={(c) => handleInput(pos.idx, c)}
                                                 onKeyDown={(e) => handleKeyDown(pos.idx, e)}
@@ -429,18 +442,7 @@ export function Join() {
                 </div>
             </div>
 
-            {/* Bottom decorative bar */}
-            <div className="relative z-10 mt-auto flex items-center justify-between border-t border-neutral-800/50 px-6 py-3 lg:px-12">
-                <span className="text-[9px] tracking-[0.3em] text-neutral-800">
-                    ROYAL<span className="text-lime/30">TYPE</span>
-                    {" // JOIN"}
-                </span>
-                <div className="flex items-center gap-4">
-                    <span className="text-[9px] tabular-nums tracking-[0.2em] text-neutral-800">
-                        v0.1.0
-                    </span>
-                </div>
-            </div>
+            <Footer label="JOIN" />
         </main>
     );
 }

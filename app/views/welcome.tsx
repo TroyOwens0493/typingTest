@@ -1,5 +1,7 @@
 import { Logo } from "~/components/logo";
 import { Panel } from "~/components/panel";
+import { Footer } from "~/components/footer";
+import { useNavigate } from "react-router";
 
 type WelcomeProps = {
     login: () => void,
@@ -8,8 +10,9 @@ type WelcomeProps = {
 }
 
 export function Welcome({ login, signUp, practice }: WelcomeProps) {
+    const navigate = useNavigate();
     return (
-        <main className="h-screen overflow-hidden bg-[#050505] font-mono text-neutral-400">
+        <main className="flex h-screen flex-col bg-[#050505] font-mono text-neutral-400">
             {/* Scanline texture */}
             <div
                 className="pointer-events-none fixed inset-0 z-50 opacity-[0.02]"
@@ -22,22 +25,6 @@ export function Welcome({ login, signUp, practice }: WelcomeProps) {
             {/* Navigation */}
             <header className="relative z-10 flex items-center justify-between px-6 py-6 lg:px-12">
                 <Logo />
-                <div className="flex items-center gap-1">
-                    <button
-                        type="button"
-                        className="px-4 py-2 text-[11px] tracking-[0.15em] text-neutral-600 transition-colors hover:text-white"
-                        onClick={login}
-                    >
-                        LOG IN
-                    </button>
-                    <button
-                        type="button"
-                        className="border border-neutral-800 px-5 py-2 text-[11px] tracking-[0.15em] text-white transition-all hover:border-lime hover:text-lime"
-                        onClick={signUp}
-                    >
-                        SIGN UP
-                    </button>
-                </div>
             </header>
 
             <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-12">
@@ -66,20 +53,18 @@ export function Welcome({ login, signUp, practice }: WelcomeProps) {
                             <button
                                 type="button"
                                 className="bg-lime px-8 py-3.5 text-[11px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d]"
+                                onClick={() => navigate("signup")}
                             >
-                                JOIN RANDOM
+                                SIGN UP
                             </button>
                             <button
                                 type="button"
                                 className="border border-neutral-800 px-8 py-3.5 text-[11px] tracking-[0.2em] text-neutral-400 transition-all hover:border-neutral-600 hover:text-white"
+                                onClick={() => navigate("login")}
                             >
-                                JOIN WITH CODE
+                                LOG IN
                             </button>
                         </div>
-
-                        <p className="mt-6 text-[10px] tracking-[0.2em] text-neutral-700">
-                            {"// sign up to create your own lobby"}
-                        </p>
                     </div>
 
                     {/* Queue terminal */}
@@ -89,17 +74,6 @@ export function Welcome({ login, signUp, practice }: WelcomeProps) {
                             <span className="text-[10px] tabular-nums tracking-[0.2em] text-neutral-600">
                                 111
                             </span>
-                        }
-                        footer={
-                            <div className="p-3">
-                                <button
-                                    type="button"
-                                    className="w-full py-3 text-[10px] tracking-[0.3em] text-neutral-600 transition-colors hover:text-lime"
-                                    onClick={practice}
-                                >
-                                    PRACTICE {"\u2192"}
-                                </button>
-                            </div>
                         }
                         className="self-start"
                     >
@@ -128,6 +102,8 @@ export function Welcome({ login, signUp, practice }: WelcomeProps) {
                     </Panel>
                 </section>
             </div>
+
+            <Footer label="WELCOME" />
         </main>
     );
 }
