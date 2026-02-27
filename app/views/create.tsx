@@ -3,6 +3,7 @@ import { Nav } from "~/components/nav";
 import { Panel } from "~/components/panel";
 import { Footer } from "~/components/footer";
 import { InputField } from "~/components/input-field";
+import { useHoldRepeat } from "~/hooks/use-hold-repeat";
 
 /* ─── Game Mode Definitions ─── */
 const GAME_MODES = [
@@ -156,13 +157,16 @@ function PlayerStepper({
         }
     }
 
+    const decrementHold = useHoldRepeat(() => onChange(clamp(value - 1)));
+    const incrementHold = useHoldRepeat(() => onChange(clamp(value + 1)));
+
     return (
         <div>
             <div className="flex items-center gap-4">
                 {/* Decrement */}
                 <button
                     type="button"
-                    onClick={() => onChange(clamp(value - 1))}
+                    {...decrementHold}
                     disabled={value <= min}
                     className="flex h-10 w-10 items-center justify-center border border-neutral-800/80 bg-[#0a0a0a] text-sm text-neutral-500 transition-all hover:border-neutral-700 hover:text-white disabled:cursor-not-allowed disabled:text-neutral-800 disabled:hover:border-neutral-800/80 sm:h-11 sm:w-11"
                 >
@@ -202,7 +206,7 @@ function PlayerStepper({
                 {/* Increment */}
                 <button
                     type="button"
-                    onClick={() => onChange(clamp(value + 1))}
+                    {...incrementHold}
                     disabled={value >= max}
                     className="flex h-10 w-10 items-center justify-center border border-neutral-800/80 bg-[#0a0a0a] text-sm text-neutral-500 transition-all hover:border-neutral-700 hover:text-white disabled:cursor-not-allowed disabled:text-neutral-800 disabled:hover:border-neutral-800/80 sm:h-11 sm:w-11"
                 >
