@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Nav } from "~/components/nav";
 import { Panel } from "~/components/panel";
 import { Footer } from "~/components/footer";
+import { InputField } from "~/components/input-field";
 
 /* ─── Game Mode Definitions ─── */
 const GAME_MODES = [
@@ -127,9 +128,32 @@ function PlayerStepper({
     const min = 2;
     const max = 50;
     const markers = [2, 10, 25, 50];
+    const [isEditing, setIsEditing] = useState(false);
+    const [inputValue, setInputValue] = useState("");
 
     function clamp(n: number) {
         return Math.max(min, Math.min(max, n));
+    }
+
+    function startEdit() {
+        setInputValue(String(value));
+        setIsEditing(true);
+    }
+
+    function commitEdit() {
+        const parsed = parseInt(inputValue, 10);
+        if (!isNaN(parsed)) {
+            onChange(clamp(parsed));
+        }
+        setIsEditing(false);
+    }
+
+    function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+        if (e.key === "Enter") {
+            commitEdit();
+        } else if (e.key === "Escape") {
+            setIsEditing(false);
+        }
     }
 
     return (
@@ -145,11 +169,31 @@ function PlayerStepper({
                     -
                 </button>
 
-                {/* Value display */}
+                {/* Value display / edit */}
                 <div className="flex min-w-[5rem] flex-col items-center sm:min-w-[6rem]">
-                    <span className="font-display text-3xl font-bold tabular-nums tracking-tight text-lime sm:text-4xl">
-                        {value}
-                    </span>
+                    {isEditing ? (
+                        <InputField
+                            label="MAX PLAYERS"
+                            hideLabel
+                            value={inputValue}
+                            onChange={(v) => setInputValue(v.replace(/\D/g, ""))}
+                            onKeyDown={handleKeyDown}
+                            onBlur={commitEdit}
+                            onFocus={(e) => e.target.select()}
+                            focusOnMount
+                            inputClassName="text-center font-display !text-2xl sm:!text-3xl font-bold tabular-nums tracking-tight !text-lime !py-1 !px-2"
+                        />
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={startEdit}
+                            className="group cursor-text"
+                        >
+                            <span className="font-display text-3xl font-bold tabular-nums tracking-tight text-lime transition-colors group-hover:text-white sm:text-4xl">
+                                {value}
+                            </span>
+                        </button>
+                    )}
                     <span className="mt-1 text-[9px] tracking-[0.3em] text-neutral-700">
                         PLAYERS MAX
                     </span>
