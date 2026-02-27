@@ -281,7 +281,11 @@ export function Join() {
                                     label="RANDOM"
                                     description="Queue into the next open lobby instantly."
                                     selected={joinMode === "random"}
-                                    onSelect={() => setJoinMode("random")}
+                                    onSelect={() => {
+                                        setJoinMode("random");
+                                        setLobbyCode(Array(6).fill(""));
+                                        setFocusedIndex(null);
+                                    }}
                                 />
                                 <JoinOptionCard
                                     id="code"
