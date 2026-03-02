@@ -9,5 +9,10 @@ export function calculateAccuracy({
     const numberTyped =
         words.filter((word) => word.state === "incorrect").length + numberCorrect;
 
-    return Math.floor((numberCorrect / numberTyped) * 100);
+    const percentage = Math.floor((numberCorrect / numberTyped) * 100);
+    if (Number.isNaN(percentage)) {
+        return 0;
+    } else {
+        return percentage;
+    }
 }
