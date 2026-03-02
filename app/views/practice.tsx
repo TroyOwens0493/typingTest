@@ -60,7 +60,15 @@ const Words = [
     { text: "unknown", state: "pending", typed: "" },
 ] as TypingWord[];
 
-function ActiveWord({ text, typed }: { text: string; typed: string }) {
+function ActiveWord({
+    text,
+    typed,
+    isIncorrect,
+}: {
+    text: string;
+    typed: string;
+    isIncorrect: boolean;
+}) {
     const chars = text.split("");
     return (
         <span className="relative">
@@ -77,7 +85,9 @@ function ActiveWord({ text, typed }: { text: string; typed: string }) {
                         <span
                             className={
                                 isTyped
-                                    ? "text-white"
+                                    ? isIncorrect
+                                        ? "text-red-400"
+                                        : "text-white"
                                     : "text-neutral-600"
                             }
                         >
@@ -102,7 +112,13 @@ function Word({
     typed?: string;
 }) {
     if (state === "active" && typed !== undefined) {
-        return <ActiveWord text={text} typed={typed} />;
+        return (
+            <ActiveWord
+                text={text}
+                typed={typed}
+                isIncorrect={status === "incorrect"}
+            />
+        );
     }
 
     const stateStyles = {
@@ -171,12 +187,12 @@ export function Practice() {
                     const wordTyped = typedArr[index] ?? "";
 
                     if (index === activeIndex) {
-                        const status = word.text.includes(wordTyped);
+                        const isCorrectSoFar = word.text.startsWith(wordTyped);
                         return {
                             ...word,
                             typed: wordTyped,
                             state: "active",
-                            status
+                            status: isCorrectSoFar ? undefined : "incorrect",
                         };
                     }
 
