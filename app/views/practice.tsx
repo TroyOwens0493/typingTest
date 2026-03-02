@@ -1,4 +1,4 @@
-import { useState, useEffect, type Dispatch, type SetStateAction, useMemo } from "react";
+import { useState, useEffect, type Dispatch, type SetStateAction, useMemo, useCallback } from "react";
 import { Nav } from "~/components/nav";
 import { Footer } from "~/components/footer";
 import { calculateAccuracy } from "~/models/typingStats";
@@ -142,9 +142,50 @@ export function Practice() {
     const [words, setWords] = useState(Words);
     const [typed, setTyped] = useState("");
 
+    const getInput = useCallback((eventValue: string) => {
+        setTyped((prev) => {
+            let nextTyped = prev;
+
+            if (eventValue === "Backspace") {
+                nextTyped = prev.slice(0, -1);
+            } else if (eventValue.length === 1) {
+                nextTyped = `${prev}${eventValue}`;
+            }
+
+            setWords((currentWords) => {
+                const typedArr = nextTyped.split(" ");
+                const activeIndex = Math.max(0, typedArr.length - 1);
+
+                if (activeIndex >= currentWords.length) {
+                    return currentWords;
+                }
+
+                return currentWords.map((word, index) => {
+                    const wordTyped = typedArr[index] ?? "";
+
+                    if (index === activeIndex) {
+                        return { ...word, typed: wordTyped, state: "active" };
+                    }
+
+                    if (index < activeIndex) {
+                        return {
+                            ...word,
+                            typed: wordTyped,
+                            state: wordTyped === word.text ? "correct" : "incorrect",
+                        };
+                    }
+
+                    return { ...word, typed: wordTyped, state: "pending" };
+                });
+            });
+
+            return nextTyped;
+        });
+    }, []);
+
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
-            getInput(e.key, setWords);
+            getInput(e.key);
         }
 
         window.addEventListener("keydown", handleKeyDown);
@@ -152,20 +193,7 @@ export function Practice() {
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, []);
-
-    function getInput(eventValue: string) {
-        //console.log(eventValue);
-
-        if (eventValue === "Backspace") {
-            setTyped((prev) => prev.slice(0, -1));
-            return;
-        }
-
-        if (eventValue.length === 1) {
-            setTyped((prev) => `${prev}${eventValue}`);
-        }
-    }
+    }, [getInput]);
 
     useEffect(() => {
         console.log(typed);
