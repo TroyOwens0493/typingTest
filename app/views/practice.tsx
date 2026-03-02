@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, type Dispatch, type SetStateAction, useMemo } from "react";
 import { Nav } from "~/components/nav";
 import { Footer } from "~/components/footer";
 import { calculateAccuracy } from "~/models/typingStats";
@@ -14,51 +14,49 @@ import type { TypingWord } from "~/models/typingTypes";
  */
 const Words = [
     // Row of already-typed words
-    { text: "the", state: "correct" },
-    { text: "quick", state: "correct" },
-    { text: "brown", state: "correct" },
-    { text: "fox", state: "correct" },
-    { text: "jumps", state: "incorrect" },
-    { text: "over", state: "correct" },
-    { text: "the", state: "correct" },
-    { text: "lazy", state: "correct" },
-    { text: "dog", state: "correct" },
-    { text: "while", state: "correct" },
-    { text: "the", state: "correct" },
-    { text: "bright", state: "correct" },
-    { text: "sun", state: "incorrect" },
-    { text: "sets", state: "correct" },
-    // Active word (partially typed)
-    { text: "behind", state: "active", typed: "beh" },
-    // Upcoming words
-    { text: "the", state: "pending" },
-    { text: "distant", state: "pending" },
-    { text: "mountains", state: "pending" },
-    { text: "casting", state: "pending" },
-    { text: "long", state: "pending" },
-    { text: "shadows", state: "pending" },
-    { text: "across", state: "pending" },
-    { text: "the", state: "pending" },
-    { text: "valley", state: "pending" },
-    { text: "below", state: "pending" },
-    { text: "where", state: "pending" },
-    { text: "rivers", state: "pending" },
-    { text: "wind", state: "pending" },
-    { text: "through", state: "pending" },
-    { text: "ancient", state: "pending" },
-    { text: "forests", state: "pending" },
-    { text: "and", state: "pending" },
-    { text: "forgotten", state: "pending" },
-    { text: "trails", state: "pending" },
-    { text: "lead", state: "pending" },
-    { text: "nowhere", state: "pending" },
-    { text: "in", state: "pending" },
-    { text: "particular", state: "pending" },
-    { text: "just", state: "pending" },
-    { text: "deeper", state: "pending" },
-    { text: "into", state: "pending" },
-    { text: "the", state: "pending" },
-    { text: "unknown", state: "pending" },
+    { text: "the", state: "active", typed: "" },
+    { text: "quick", state: "pending", typed: "" },
+    { text: "brown", state: "pending", typed: "" },
+    { text: "fox", state: "pending", typed: "" },
+    { text: "jumps", state: "pending", typed: "" },
+    { text: "over", state: "pending", typed: "" },
+    { text: "the", state: "pending", typed: "" },
+    { text: "lazy", state: "pending", typed: "" },
+    { text: "dog", state: "pending", typed: "" },
+    { text: "while", state: "pending", typed: "" },
+    { text: "the", state: "pending", typed: "" },
+    { text: "bright", state: "pending", typed: "" },
+    { text: "sun", state: "pending", typed: "" },
+    { text: "sets", state: "pending", typed: "" },
+    { text: "behind", state: "pending", typed: "" },
+    { text: "the", state: "pending", typed: "" },
+    { text: "distant", state: "pending", typed: "" },
+    { text: "mountains", state: "pending", typed: "" },
+    { text: "casting", state: "pending", typed: "" },
+    { text: "long", state: "pending", typed: "" },
+    { text: "shadows", state: "pending", typed: "" },
+    { text: "across", state: "pending", typed: "" },
+    { text: "the", state: "pending", typed: "" },
+    { text: "valley", state: "pending", typed: "" },
+    { text: "below", state: "pending", typed: "" },
+    { text: "where", state: "pending", typed: "" },
+    { text: "rivers", state: "pending", typed: "" },
+    { text: "wind", state: "pending", typed: "" },
+    { text: "through", state: "pending", typed: "" },
+    { text: "ancient", state: "pending", typed: "" },
+    { text: "forests", state: "pending", typed: "" },
+    { text: "and", state: "pending", typed: "" },
+    { text: "forgotten", state: "pending", typed: "" },
+    { text: "trails", state: "pending", typed: "" },
+    { text: "lead", state: "pending", typed: "" },
+    { text: "nowhere", state: "pending", typed: "" },
+    { text: "in", state: "pending", typed: "" },
+    { text: "particular", state: "pending", typed: "" },
+    { text: "just", state: "pending", typed: "" },
+    { text: "deeper", state: "pending", typed: "" },
+    { text: "into", state: "pending", typed: "" },
+    { text: "the", state: "pending", typed: "" },
+    { text: "unknown", state: "pending", typed: "" },
 ] as TypingWord[];
 
 function ActiveWord({ text, typed }: { text: string; typed: string }) {
@@ -138,8 +136,45 @@ function StatBlock({
     );
 }
 
+
 export function Practice() {
     const [isFocused, setIsFocused] = useState(true);
+    const [words, setWords] = useState(Words);
+    const [typed, setTyped] = useState("");
+
+    useEffect(() => {
+        function handleKeyDown(e: KeyboardEvent) {
+            getInput(e.key, setWords);
+        }
+
+        window.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, []);
+
+    function getInput(eventValue: string) {
+        //console.log(eventValue);
+
+        if (eventValue === "Backspace") {
+            setTyped((prev) => prev.slice(0, -1));
+            return;
+        }
+
+        if (eventValue.length === 1) {
+            setTyped((prev) => `${prev}${eventValue}`);
+        }
+    }
+
+    useEffect(() => {
+        console.log(typed);
+    }, [typed]);
+
+    useEffect(() => {
+        console.log("words", words);
+    }, [words]);
+
 
     return (
         <main className="relative flex h-screen flex-col overflow-hidden bg-[#050505] font-mono text-neutral-400">
@@ -165,7 +200,7 @@ export function Practice() {
                     <StatBlock
                         label="ACC"
                         value={`${calculateAccuracy({
-                            words: Words.filter((word) => word.state !== "active"),
+                            words: words.filter((word) => word.state !== "active"),
                         })}%`}
                     />
                     <div className="h-4 w-px bg-neutral-800" />
@@ -189,7 +224,7 @@ export function Practice() {
                         className={`flex flex-wrap gap-x-[0.65em] gap-y-3 text-[1.35rem] leading-relaxed transition-all duration-200 ${!isFocused ? "opacity-30" : ""
                             }`}
                     >
-                        {Words.map((word, i) => (
+                        {words.map((word, i) => (
                             <Word
                                 key={`${word.text}-${i}`}
                                 text={word.text}
