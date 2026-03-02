@@ -7,10 +7,11 @@ import type { TypingWord } from "~/models/typingTypes";
 /*
  * Sample words for the typing area.
  * Each word has a visual state for the static mockup:
- *   "correct"   — typed correctly (dimmed)
- *   "incorrect" — typed with errors (red)
  *   "active"    — currently being typed (white, with per-char progress)
  *   "pending"   — not yet reached (very dim)
+ * Each word has a status once typed:
+ *   "correct"   — typed correctly (dimmed)
+ *   "incorrect" — typed with errors (red)
  */
 const Words = [
     // Row of already-typed words
@@ -92,10 +93,12 @@ function ActiveWord({ text, typed }: { text: string; typed: string }) {
 function Word({
     text,
     state,
+    status,
     typed,
 }: {
     text: TypingWord["text"];
-    state: TypingWord["state"] | "active";
+    state: TypingWord["state"];
+    status?: TypingWord["status"];
     typed?: string;
 }) {
     if (state === "active" && typed !== undefined) {
@@ -108,6 +111,10 @@ function Word({
         active: "text-white",
         pending: "text-neutral-700",
     };
+
+    if (status) {
+        return <span className={stateStyles[status]}>{text}</span>;
+    }
 
     return <span className={stateStyles[state]}>{text}</span>;
 }
@@ -164,18 +171,25 @@ export function Practice() {
                     const wordTyped = typedArr[index] ?? "";
 
                     if (index === activeIndex) {
-                        return { ...word, typed: wordTyped, state: "active" };
+                        const status = word.text.includes(wordTyped);
+                        return {
+                            ...word,
+                            typed: wordTyped,
+                            state: "active",
+                            status
+                        };
                     }
 
                     if (index < activeIndex) {
                         return {
                             ...word,
                             typed: wordTyped,
-                            state: wordTyped === word.text ? "correct" : "incorrect",
+                            state: "pending",
+                            status: wordTyped === word.text ? "correct" : "incorrect",
                         };
                     }
 
-                    return { ...word, typed: wordTyped, state: "pending" };
+                    return { ...word, typed: wordTyped, state: "pending", status: undefined };
                 });
             });
 
@@ -257,6 +271,7 @@ export function Practice() {
                                 key={`${word.text}-${i}`}
                                 text={word.text}
                                 state={word.state}
+                                status={word.status}
                                 typed={"typed" in word ? word.typed : undefined}
                             />
                         ))}
