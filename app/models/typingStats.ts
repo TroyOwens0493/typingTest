@@ -19,10 +19,10 @@ export function calculateAccuracy({
 
 export function calculateWpm({
     numberOfWords,
-    timeInSeconds
+    timeInSeconds,
 }: {
-    numberOfWords: number,
-    timeInSeconds: number
+    numberOfWords: number;
+    timeInSeconds: number;
 }) {
     const minutes = timeInSeconds / 60;
     const res = Math.floor(numberOfWords / minutes);
