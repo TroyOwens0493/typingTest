@@ -236,7 +236,7 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
                             text={word.text}
                             state={word.state}
                             status={word.status}
-                            typed={"typed" in word ? word.typed : undefined}
+                            typed={word.typed}
                         />
                     ))}
                 </div>
