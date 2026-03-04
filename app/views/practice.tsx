@@ -1,7 +1,7 @@
-import { useState, useEffect, type Dispatch, type SetStateAction, useMemo, useCallback } from "react";
+import { useState, useEffect, type Dispatch, type SetStateAction, useMemo, useCallback, useRef } from "react";
 import { Nav } from "~/components/nav";
 import { Footer } from "~/components/footer";
-import { calculateAccuracy } from "~/models/typingStats";
+import { calculateAccuracy, calculateWpm } from "~/models/typingStats";
 import type { TypingWord } from "~/models/typingTypes";
 
 /*
@@ -161,23 +161,31 @@ function StatBlock({
 
 
 export function Practice() {
+    //Handle state
     const [isFocused, setIsFocused] = useState(true);
     const [words, setWords] = useState(Words);
     const [typed, setTyped] = useState("");
+    const [startTime, setStartTime] = useState<number>(0);
+    const [timerInSeconds, setTimerInSeconds] = useState(0);
+    const [wordsTyped, setWordsTyped] = useState(0);
 
-    const getInput = useCallback((eventValue: string) => {
+    const getSetWords = useCallback((eventValue: string) => {
         setTyped((prev) => {
             let nextTyped = prev;
 
             if (eventValue === "Backspace") {
                 nextTyped = prev.slice(0, -1);
             } else if (eventValue.length === 1) {
+                if (prev === "" && startTime === 0) {
+                    setStartTime(Date.now());
+                }
                 nextTyped = `${prev}${eventValue}`;
             }
 
             setWords((currentWords) => {
                 const typedArr = nextTyped.split(" ");
                 const activeIndex = Math.max(0, typedArr.length - 1);
+                setWordsTyped(activeIndex + 1);
 
                 if (activeIndex >= currentWords.length) {
                     return currentWords;
@@ -211,11 +219,12 @@ export function Practice() {
 
             return nextTyped;
         });
-    }, []);
+    }, [startTime]);
 
+    // Listen to all browser keydown events
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
-            getInput(e.key);
+            getSetWords(e.key);
         }
 
         window.addEventListener("keydown", handleKeyDown);
@@ -223,16 +232,17 @@ export function Practice() {
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [getInput]);
+    }, [getSetWords]);
 
+    // Update timer
     useEffect(() => {
-        console.log(typed);
-    }, [typed]);
-
-    useEffect(() => {
-        console.log("words", words);
-    }, [words]);
-
+        if (startTime === 0) return;
+        const id = setInterval(() => {
+            const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            setTimerInSeconds(elapsedSeconds);
+        }, 1000);
+        return () => clearInterval(id);
+    }, [startTime]);
 
     return (
         <main className="relative flex h-screen flex-col overflow-hidden bg-[#050505] font-mono text-neutral-400">
@@ -253,7 +263,14 @@ export function Practice() {
 
                 {/* Live stats — above the text */}
                 <div className="mb-10 flex items-center gap-12">
-                    <StatBlock label="WPM" value="72" accent />
+                    <StatBlock
+                        label="WPM"
+                        value={`${calculateWpm({
+                            numberOfWords: wordsTyped,
+                            timeInSeconds: timerInSeconds
+                        })}`}
+                        accent
+                    />
                     <div className="h-4 w-px bg-neutral-800" />
                     <StatBlock
                         label="ACC"
@@ -262,7 +279,11 @@ export function Practice() {
                         })}%`}
                     />
                     <div className="h-4 w-px bg-neutral-800" />
-                    <StatBlock label="TIME" value="18" accent />
+                    <StatBlock
+                        label="TIME"
+                        value={`${timerInSeconds}`}
+                        accent
+                    />
                 </div>
 
                 {/* Typing area */}
