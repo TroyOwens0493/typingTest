@@ -121,9 +121,12 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
     const [wordsTyped, setWordsTyped] = useState(0);
     // Working copy of words with typing state/status applied.
     const [activeWords, setActiveWords] = useState(words);
+    // Whether the typing test has been completed.
+    const [isComplete, setIsComplete] = useState(false);
 
     // Handles key input, updates typed string, and starts timer on first character.
     const getSetWords = useCallback((eventValue: string) => {
+        if (!isFocused || isComplete) return;
         setTyped((prev) => {
             let nextTyped = prev;
 
@@ -144,7 +147,7 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
             }
             return nextTyped;
         });
-    }, [startTime]);
+    }, [isFocused, isComplete, startTime]);
 
     // Recompute word states whenever typed input changes.
     useEffect(() => {
@@ -152,6 +155,19 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
             const typedArr = typed.split(" ");
             const activeIndex = Math.max(0, typedArr.length - 1);
             setWordsTyped(activeIndex + 1);
+
+            const lastWordIndex = currentWords.length - 1;
+            const lastTyped = typedArr[lastWordIndex] ?? "";
+            const extraTyped = typedArr.slice(currentWords.length).some((value) => value !== "");
+            const isTestComplete =
+                lastWordIndex >= 0 &&
+                lastTyped === currentWords[lastWordIndex]?.text &&
+                !extraTyped;
+
+            if (isTestComplete) {
+                setIsComplete(true);
+                setIsFocused(false);
+            }
 
             if (activeIndex >= currentWords.length) {
                 return currentWords;
@@ -187,11 +203,13 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
     // Refresh active words when the word list prop changes.
     useEffect(() => {
         setActiveWords(words);
+        setIsComplete(false);
     }, [words]);
 
     // Register global keydown handler for typing input.
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
+            if (!isFocused || isComplete) return;
             getSetWords(e.key);
         }
 
@@ -200,7 +218,7 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [getSetWords]);
+    }, [getSetWords, isFocused, isComplete]);
 
     // Start/stop the interval that updates elapsed time.
     useEffect(() => {
@@ -239,7 +257,14 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
             </div>
 
             {/* eslint-disable-next-line */}
-            <div className="relative w-full max-w-3xl cursor-text">
+            <button
+                type="button"
+                className="relative w-full max-w-3xl cursor-text text-left"
+                onClick={() => {
+                    if (!isComplete) setIsFocused(true);
+                }}
+                disabled={isComplete}
+            >
                 {!isFocused && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[3px]">
                         <span className="text-[11px] tracking-[0.2em] text-neutral-500">
@@ -262,7 +287,7 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
                         />
                     ))}
                 </div>
-            </div>
+            </button>
 
             <div className="mt-14 flex flex-col items-center gap-3">
                 <button
