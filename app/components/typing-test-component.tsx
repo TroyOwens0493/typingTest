@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { calculateAccuracy, calculateWpm } from "~/models/typingStats";
 import type { TypingWord } from "~/models/typingTypes";
 
+// Renders the active word with a blinking cursor and per-character styling.
 function ActiveWord({
     text,
     typed,
@@ -42,6 +43,7 @@ function ActiveWord({
     );
 }
 
+// Renders a word based on its typing state and status.
 function Word({
     text,
     state,
@@ -77,6 +79,7 @@ function Word({
     return <span className={stateStyles[state]}>{text}</span>;
 }
 
+// Displays a labeled stat value (WPM/ACC/TIME).
 function StatBlock({
     label,
     value,
@@ -106,13 +109,20 @@ type TypingTestComponentProps = {
 };
 
 export function TypingTestComponent({ words }: TypingTestComponentProps) {
+    // Tracks whether the typing surface is focused for input.
     const [isFocused, setIsFocused] = useState(true);
+    // Stores the full raw typed string (including spaces).
     const [typed, setTyped] = useState("");
+    // Timestamp (ms) when typing starts; 0 means not started yet.
     const [startTime, setStartTime] = useState<number>(0);
+    // Elapsed time in seconds since typing started.
     const [timerInSeconds, setTimerInSeconds] = useState(0);
+    // Count of words progressed through, used for WPM calculation.
     const [wordsTyped, setWordsTyped] = useState(0);
+    // Working copy of words with typing state/status applied.
     const [activeWords, setActiveWords] = useState(words);
 
+    // Handles key input, updates typed string, and starts timer on first character.
     const getSetWords = useCallback((eventValue: string) => {
         setTyped((prev) => {
             let nextTyped = prev;
@@ -132,50 +142,54 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
                 }
                 nextTyped = `${prev}${eventValue}`;
             }
-
-            setActiveWords((currentWords) => {
-                const typedArr = nextTyped.split(" ");
-                const activeIndex = Math.max(0, typedArr.length - 1);
-                setWordsTyped(activeIndex + 1);
-
-                if (activeIndex >= currentWords.length) {
-                    return currentWords;
-                }
-
-                return currentWords.map((word, index) => {
-                    const wordTyped = typedArr[index] ?? "";
-
-                    if (index === activeIndex) {
-                        const isCorrectSoFar = word.text.startsWith(wordTyped);
-                        return {
-                            ...word,
-                            typed: wordTyped,
-                            state: "active",
-                            status: isCorrectSoFar ? undefined : "incorrect",
-                        };
-                    }
-
-                    if (index < activeIndex) {
-                        return {
-                            ...word,
-                            typed: wordTyped,
-                            state: "pending",
-                            status: wordTyped === word.text ? "correct" : "incorrect",
-                        };
-                    }
-
-                    return { ...word, typed: wordTyped, state: "pending", status: undefined };
-                });
-            });
-
             return nextTyped;
         });
     }, [startTime]);
 
+    // Recompute word states whenever typed input changes.
+    useEffect(() => {
+        setActiveWords((currentWords) => {
+            const typedArr = typed.split(" ");
+            const activeIndex = Math.max(0, typedArr.length - 1);
+            setWordsTyped(activeIndex + 1);
+
+            if (activeIndex >= currentWords.length) {
+                return currentWords;
+            }
+
+            return currentWords.map((word, index) => {
+                const wordTyped = typedArr[index] ?? "";
+
+                if (index === activeIndex) {
+                    const isCorrectSoFar = word.text.startsWith(wordTyped);
+                    return {
+                        ...word,
+                        typed: wordTyped,
+                        state: "active",
+                        status: isCorrectSoFar ? undefined : "incorrect",
+                    };
+                }
+
+                if (index < activeIndex) {
+                    return {
+                        ...word,
+                        typed: wordTyped,
+                        state: "pending",
+                        status: wordTyped === word.text ? "correct" : "incorrect",
+                    };
+                }
+
+                return { ...word, typed: wordTyped, state: "pending", status: undefined };
+            });
+        });
+    }, [typed]);
+
+    // Refresh active words when the word list prop changes.
     useEffect(() => {
         setActiveWords(words);
     }, [words]);
 
+    // Register global keydown handler for typing input.
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
             getSetWords(e.key);
@@ -188,6 +202,7 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
         };
     }, [getSetWords]);
 
+    // Start/stop the interval that updates elapsed time.
     useEffect(() => {
         if (startTime === 0) return;
         const id = setInterval(() => {
