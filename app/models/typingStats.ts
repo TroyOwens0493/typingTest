@@ -18,14 +18,15 @@ export function calculateAccuracy({
 }
 
 export function calculateWpm({
-    numberOfWords,
+    words,
     timeInSeconds,
 }: {
-    numberOfWords: number;
+    words: TypingWord[];
     timeInSeconds: number;
 }) {
     const minutes = timeInSeconds / 60;
-    const res = Math.floor(numberOfWords / minutes);
+    const correctWords = words.filter((word) => word.status === "correct").length;
+    const res = Math.floor(correctWords / minutes);
     if (!Number.isFinite(res) || Number.isNaN(res)) {
         return 0;
     } else {

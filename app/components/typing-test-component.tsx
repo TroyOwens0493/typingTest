@@ -236,7 +236,7 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
                 <StatBlock
                     label="WPM"
                     value={`${calculateWpm({
-                        numberOfWords: wordsTyped,
+                        words: activeWords.filter((word) => word.state !== "active"),
                         timeInSeconds: timerInSeconds,
                     })}`}
                     accent
