@@ -16,3 +16,19 @@ export function calculateAccuracy({
         return percentage;
     }
 }
+
+export function calculateWpm({
+    numberOfWords,
+    timeInSeconds
+}: {
+    numberOfWords: number,
+    timeInSeconds: number
+}) {
+    const minutes = timeInSeconds / 60;
+    const res = Math.floor(numberOfWords / minutes);
+    if (!Number.isFinite(res) || Number.isNaN(res)) {
+        return 0;
+    } else {
+        return res;
+    }
+}
