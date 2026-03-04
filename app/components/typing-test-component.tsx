@@ -222,13 +222,13 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
 
     // Start/stop the interval that updates elapsed time.
     useEffect(() => {
-        if (startTime === 0) return;
+        if (startTime === 0 || isComplete) return;
         const id = setInterval(() => {
             const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
             setTimerInSeconds(elapsedSeconds);
         }, 1000);
         return () => clearInterval(id);
-    }, [startTime]);
+    }, [startTime, isComplete]);
 
     return (
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 lg:px-12">
