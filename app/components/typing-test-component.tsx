@@ -120,7 +120,14 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
             if (eventValue === "Backspace") {
                 nextTyped = prev.slice(0, -1);
             } else if (eventValue.length === 1) {
-                if (prev === "" && startTime === 0) {
+                const isWhitespace = eventValue.trim().length === 0;
+
+                // Ignore leading whitespace: do not start the timer or modify typed text
+                if (prev === "" && isWhitespace) {
+                    return prev;
+                }
+
+                if (prev === "" && startTime === 0 && !isWhitespace) {
                     setStartTime(Date.now());
                 }
                 nextTyped = `${prev}${eventValue}`;
