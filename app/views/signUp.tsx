@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useSubmit } from "react-router";
 import { Logo } from "~/components/logo";
 import { InputField } from "~/components/input-field";
 import { Panel } from "~/components/panel";
 import { Footer } from "~/components/footer";
 
 export function SignUp() {
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -16,9 +17,16 @@ export function SignUp() {
     const canSubmit =
         email.length > 0 && passwordLongEnough && passwordsMatch;
 
+    const submit = useSubmit();
+
     function handleSubmit() {
         if (!canSubmit) return;
-        // TODO: wire up to API
+        const fd = new FormData();
+        fd.append('username', username);
+        fd.append('email', email);
+        fd.append('password', password);
+
+        submit(fd, { method: "post", action: "/signup" });
     }
 
     return (
@@ -85,6 +93,13 @@ export function SignUp() {
                                 {/* Form fields */}
                                 <div className="space-y-5 px-5 py-5">
                                     <InputField
+                                        label="USERNAME"
+                                        type="username"
+                                        value={username}
+                                        onChange={setUsername}
+                                        placeholder="numbers letter and no spaces"
+                                    />
+                                    <InputField
                                         label="EMAIL"
                                         type="email"
                                         value={email}
@@ -114,11 +129,10 @@ export function SignUp() {
                                     )}
                                     {confirmPassword.length > 0 && (
                                         <p
-                                            className={`text-[10px] tracking-[0.15em] ${
-                                                passwordsMatch
-                                                    ? "text-lime/70"
-                                                    : "text-red-400/80"
-                                            }`}
+                                            className={`text-[10px] tracking-[0.15em] ${passwordsMatch
+                                                ? "text-lime/70"
+                                                : "text-red-400/80"
+                                                }`}
                                         >
                                             {passwordsMatch
                                                 ? "// passwords match"
