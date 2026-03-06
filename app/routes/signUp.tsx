@@ -1,7 +1,7 @@
 import { SignUp } from "../views/signUp";
 import type { ActionFunctionArgs } from "react-router";
 import { ConvexHttpClient } from "convex/browser"
-import { api } from "../../convex/_generated/api"
+import { api } from "../convex/_generated/api"
 import bcrypt from "bcryptjs"
 
 const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string);
