@@ -7,6 +7,7 @@ export function InputField({
     value,
     onChange,
     placeholder,
+    name,
     disabled,
     readOnly,
     hideLabel,
@@ -21,6 +22,7 @@ export function InputField({
     value: string;
     onChange?: (v: string) => void;
     placeholder?: string;
+    name?: string;
     disabled?: boolean;
     readOnly?: boolean;
     hideLabel?: boolean;
@@ -57,6 +59,7 @@ export function InputField({
             <input
                 ref={inputRef}
                 id={id}
+                name={name}
                 type={type}
                 value={value}
                 onChange={(e) => onChange?.(e.target.value)}

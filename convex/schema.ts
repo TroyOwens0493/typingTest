@@ -21,7 +21,7 @@ export default defineSchema({
             result: v.string(),
             place: v.number(),
         }),
-    }),
+    }).index("by_email", ["email"]),
     match: defineTable({
         code: v.string(),
         gamemode: v.string(),
