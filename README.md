@@ -47,3 +47,22 @@ Keep both terminals open while you work.
 
 If you run into issues with Convex, the docs are a great starting point:
 https://docs.convex.dev/
+
+## Project Structure (MVC)
+
+This project is for a backend web dev class, so the structure is explained in MVC terms.
+
+- Model: `app/convex/` holds the data layer (schema + Convex functions). This is where most model logic lives because Convex is the database and server-side API. Example: `app/convex/schema.ts` defines tables, and `app/convex/users.ts` creates users.
+- Controller: `app/routes/` and `app/routes.ts` define the request handlers and routing. Example: `app/routes/signUp.tsx` accepts form data, hashes the password, and calls the Convex mutation.
+- View: `app/views/` contains page UI, and `app/components/` contains reusable UI pieces used by the views. (Partials)
+- Wiring: `app/root.tsx` sets up the `ConvexProvider` and the route outlet, connecting controllers to models and views. (This is the app's entry point)
+
+Request flow (simplified):
+
+```text
+View (app/views)
+  -> Controller (app/routes)
+  -> Model (app/convex)
+  -> Convex DB
+  -> View update
+```
