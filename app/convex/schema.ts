@@ -29,4 +29,15 @@ export default defineSchema({
         difficulty: v.string(),
         visibility: v.string(),
     }),
+    sessions: defineTable({
+        userId: v.id("user"),
+        tokenHash: v.string(),
+        createdAt: v.number(),
+        expiresAt: v.number(),
+        userAgent: v.optional(v.string()),
+        ipAddress: v.optional(v.string()),
+    })
+        .index("by_user", ["userId"])
+        .index("by_token_hash", ["tokenHash"])
+        .index("by_expires_at", ["expiresAt"]),
 });

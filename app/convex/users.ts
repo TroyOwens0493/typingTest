@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server"
+import { mutation, query } from "./_generated/server"
 import { v } from "convex/values"
 
 export const createUser = mutation({
@@ -18,8 +18,7 @@ export const createUser = mutation({
             throw new Error("Email already exists")
         }
 
-
-        await ctx.db.insert("user", {
+        return await ctx.db.insert("user", {
             username: args.username,
             email: args.email,
             password: args.password,
@@ -40,4 +39,20 @@ export const createUser = mutation({
             },
         })
     },
-})
+});
+
+export const getUser = query({
+    args: {
+        id: v.id("user"),
+    },
+
+    handler: async (ctx, args) => {
+        const accInfo = await ctx.db.get(args.id)
+
+        if (!accInfo) {
+            throw new Error("User doesn't exist");
+        }
+
+        return accInfo;
+    },
+});
