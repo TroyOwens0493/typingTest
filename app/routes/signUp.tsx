@@ -3,7 +3,7 @@ import { redirect, type ActionFunctionArgs } from "react-router";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import bcrypt from "bcryptjs";
-import crypto from "node:crypto";
+import { makeSessionCookie } from "./sessionCookieMaker";
 
 const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -28,34 +28,11 @@ export async function action({ request }: ActionFunctionArgs) {
             password: passwordHash,
         });
 
-        // Create a session token
-        const rawToken = crypto.randomBytes(32).toString("hex");
-        const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
-        const createdAt = Date.now();
-        const expiresAt = createdAt + 1000 * 60 * 60 * 24 * 30;
-
-        // Add session token to db
-        await convex.mutation((api as any).sessions.createSession, {
-            userId,
-            tokenHash,
-            createdAt,
-            expiresAt,
-            userAgent: request.headers.get("user-agent") ?? undefined,
-            ipAddress: request.headers.get("x-forwarded-for") ?? undefined,
+        const userInfo = await convex.query((api as any).users.getUser, {
+            id: userId,
         });
 
-        // Create cookie with token
-        const isProduction = process.env.NODE_ENV === "production";
-        const cookie = [
-            `session=${rawToken}`,
-            "Path=/",
-            "HttpOnly",
-            "SameSite=Lax",
-            `Max-Age=${60 * 60 * 24 * 30}`,
-            isProduction ? "Secure" : "",
-        ]
-            .filter(Boolean)
-            .join("; ");
+        const cookie = await makeSessionCookie({ request, userInfo });
 
         return redirect("/home", {
             headers: {
