@@ -56,3 +56,22 @@ export const getUser = query({
         return accInfo;
     },
 });
+
+export const getUserByEmail = query({
+    args: {
+        email: v.string(),
+    },
+
+    handler: async (ctx, args) => {
+        const accInfo = await ctx.db
+            .query("user")
+            .withIndex("by_email", (q) => q.eq("email", args.email))
+            .unique();
+
+        if (!accInfo) {
+            throw new Error("User doesn't exist");
+        }
+
+        return accInfo;
+    },
+});

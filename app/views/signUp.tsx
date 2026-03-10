@@ -140,7 +140,7 @@ export function SignUp() {
                                             CREATE ACCOUNT
                                         </button>
                                         <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
-                                            {"// you'll be redirected to the lobby"}
+                                            {"// you'll be redirected to your home page"}
                                         </p>
                                     </div>
                                 </Form>

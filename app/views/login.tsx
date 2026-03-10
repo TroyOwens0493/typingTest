@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Form, Link } from "react-router";
 import { Logo } from "~/components/logo";
 import { InputField } from "~/components/input-field";
 import { Panel } from "~/components/panel";
@@ -10,11 +10,6 @@ export function Login() {
     const [password, setPassword] = useState("");
 
     const canSubmit = email.length > 0 && password.length > 0;
-
-    function handleSubmit() {
-        if (!canSubmit) return;
-        // TODO: wire up to API
-    }
 
     return (
         <main className="relative flex min-h-screen flex-col bg-[#050505] font-mono text-neutral-400">
@@ -77,13 +72,14 @@ export function Login() {
                                 }
                             >
                                 {/* Form fields */}
-                                <div className="space-y-5 px-5 py-5">
+                                <Form method="post" className="space-y-5 px-5 py-5">
                                     <InputField
                                         label="EMAIL"
                                         type="email"
                                         value={email}
                                         onChange={setEmail}
                                         placeholder="you@example.com"
+                                        name="email"
                                     />
                                     <InputField
                                         label="PASSWORD"
@@ -91,12 +87,12 @@ export function Login() {
                                         value={password}
                                         onChange={setPassword}
                                         placeholder="enter your password"
+                                        name="password"
                                     />
 
                                     <div className="pt-1">
                                         <button
-                                            type="button"
-                                            onClick={handleSubmit}
+                                            type="submit"
                                             disabled={!canSubmit}
                                             className="w-full bg-lime py-3.5 text-[11px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d] disabled:cursor-not-allowed disabled:opacity-30 sm:w-auto sm:px-8"
                                         >
@@ -106,7 +102,7 @@ export function Login() {
                                             {"// you'll be redirected to your dashboard"}
                                         </p>
                                     </div>
-                                </div>
+                                </Form>
                             </Panel>
                         </section>
 
