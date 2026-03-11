@@ -10,10 +10,21 @@ const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string);
 export async function action({ request }: ActionFunctionArgs) {
     const data = await request.formData();
 
-    const username = String(data.get("username"));
-    const email = String(data.get("email"));
-    const password = String(data.get("password"));
+    const rawUsername = data.get("username");
+    const rawEmail = data.get("email");
+    const rawPassword = data.get("password");
 
+    if (
+        typeof rawUsername !== "string" ||
+        typeof rawEmail !== "string" ||
+        typeof rawPassword !== "string"
+    ) {
+        return { error: "Invalid input" };
+    }
+
+    const username = rawUsername.trim();
+    const email = rawEmail.trim();
+    const password = rawPassword.trim();
     if (!username || !email || !password) {
         return { error: "Invalid input" };
     }
