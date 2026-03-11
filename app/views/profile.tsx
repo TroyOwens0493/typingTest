@@ -212,6 +212,7 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                                         type="submit"
                                                         disabled={
                                                             !nameInput.trim() ||
+                                                            !!nameErr ||
                                                             nameFetcher.state !== "idle"
                                                         }
                                                         className="bg-lime px-5 py-2 text-[10px] font-bold tracking-[0.15em] text-black transition-colors hover:bg-[#d4ff4d] disabled:opacity-40"
