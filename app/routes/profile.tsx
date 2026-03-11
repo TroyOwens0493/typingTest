@@ -15,7 +15,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         return redirect("/login");
     }
 
-    const user = await convex.query((api as any).users.getUser, {
+    const user = await convex.query(api.users.getUser, {
         id: session.userId,
     });
 
@@ -38,7 +38,7 @@ async function logout(
     if (token) {
         const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
-        await convex.mutation((api as any).sessions.deleteSessionByTokenHash, {
+        await convex.mutation(api.sessions.deleteSessionByTokenHash, {
             tokenHash,
         });
     }

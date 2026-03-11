@@ -20,7 +20,7 @@ export async function makeSessionCookie({
         const expiresAt = createdAt + 1000 * 60 * 60 * 24 * 30;
 
         // Add session token to db
-        await convex.mutation((api as any).sessions.createSession, {
+        await convex.mutation(api.sessions.createSession, {
             userId: userInfo._id,
             tokenHash,
             createdAt,
