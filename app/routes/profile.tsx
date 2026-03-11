@@ -1,24 +1,33 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { redirect, useLoaderData } from "react-router";
 import { Profile } from "../views/profile";
-import { authenticate } from "./authenticate";
-import { redirect } from "react-router";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import crypto from "node:crypto";
+import { getAuthenticatedSession, getCookieValue } from "./authenticate";
 
 const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string);
 
-function getCookieValue(cookieHeader: string | null, name: string) {
-    if (!cookieHeader) return null;
-    for (const cookie of cookieHeader.split(";")) {
-        const [key, ...rest] = cookie.trim().split("=");
-        if (key === name) return rest.join("=");
-    }
-    return null;
-}
-
 export async function loader({ request }: LoaderFunctionArgs) {
-    return authenticate(request);
+    const session = await getAuthenticatedSession(request);
+
+    if (!session) {
+        return redirect("/login");
+    }
+
+    const user = await convex.query((api as any).users.getUser, {
+        id: session.userId,
+    });
+
+    return {
+        profile: {
+            displayName: user.username,
+            email: user.email,
+            rank: user.rank,
+            level: user.level,
+            memberSince: user._creationTime,
+        },
+    };
 }
 
 async function logout(
@@ -66,5 +75,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function Page() {
-    return <Profile />;
+    const { profile } = useLoaderData<typeof loader>();
+
+    return <Profile profile={profile} />;
 }
