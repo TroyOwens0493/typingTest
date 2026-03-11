@@ -76,6 +76,19 @@ export const getUserByEmail = query({
     },
 });
 
+export const getUserByUsername = query({
+    args: {
+        username: v.string(),
+    },
+
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("user")
+            .filter((q) => q.eq(q.field("username"), args.username))
+            .unique();
+    },
+});
+
 export const updateUsername = mutation({
     args: {
         id: v.id("user"),

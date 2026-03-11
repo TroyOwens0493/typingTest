@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Form } from "react-router";
+import { useCallback, useEffect, useState } from "react";
+import { Form, useFetcher } from "react-router";
 import { Nav } from "~/components/nav";
 import { InputField } from "~/components/input-field";
 import { Panel } from "~/components/panel";
@@ -47,6 +47,13 @@ export function Profile({ profile }: { profile: ProfileData }) {
     /* Display name inline-edit state */
     const [isEditingName, setIsEditingName] = useState(false);
     const [nameInput, setNameInput] = useState(profile.displayName);
+    const nameFetcher = useFetcher<{
+        ok?: boolean;
+        error?: string;
+        displayName?: string;
+    }>();
+    const nameValidationFetcher = useFetcher<string>();
+    const [nameErr, setNameErr] = useState("");
 
     /* Password form state */
     const [currentPassword, setCurrentPassword] = useState("");
@@ -56,10 +63,52 @@ export function Profile({ profile }: { profile: ProfileData }) {
     /* Delete confirmation state */
     const [deleteConfirm, setDeleteConfirm] = useState(false);
 
+    useEffect(() => {
+        setNameInput(profile.displayName);
+    }, [profile.displayName]);
+
+    useEffect(() => {
+        if (nameFetcher.state === "idle" && nameFetcher.data?.ok) {
+            setIsEditingName(false);
+            setNameErr("");
+            setNameInput(nameFetcher.data.displayName ?? profile.displayName);
+        }
+    }, [nameFetcher.data, nameFetcher.state, profile.displayName]);
+
+    useEffect(() => {
+        if (typeof nameValidationFetcher.data === "string") {
+            setNameErr(nameValidationFetcher.data);
+        }
+    }, [nameValidationFetcher.data]);
+
     function handleCancelName() {
         setNameInput(profile.displayName);
         setIsEditingName(false);
     }
+
+    const validateNameInput = useCallback((nameInput: string) => {
+        const trimmedName = nameInput.trim();
+
+        if (!trimmedName) {
+            setNameErr("You cannot have an empty username");
+            return;
+        }
+
+        nameValidationFetcher.submit({
+            intent: 'validate-username',
+            username: trimmedName,
+        }, {
+            method: 'post',
+            action: '/profile',
+        });
+    }, [nameValidationFetcher]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            validateNameInput(nameInput);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [nameInput, validateNameInput]);
 
     function handlePasswordSubmit() {
         // TODO: wire up to API
@@ -142,7 +191,7 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                     </div>
 
                                     {isEditingName ? (
-                                        <Form method="post">
+                                        <nameFetcher.Form method="post">
                                             <input
                                                 type="hidden"
                                                 name="intent"
@@ -162,22 +211,36 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                                     <button
                                                         type="submit"
                                                         disabled={
-                                                            !nameInput.trim()
+                                                            !nameInput.trim() ||
+                                                            nameFetcher.state !== "idle"
                                                         }
                                                         className="bg-lime px-5 py-2 text-[10px] font-bold tracking-[0.15em] text-black transition-colors hover:bg-[#d4ff4d] disabled:opacity-40"
                                                     >
-                                                        SAVE
+                                                        {nameFetcher.state === "submitting"
+                                                            ? "SAVING..."
+                                                            : "SAVE"}
                                                     </button>
                                                     <button
                                                         type="button"
+                                                        disabled={nameFetcher.state !== "idle"}
                                                         onClick={handleCancelName}
                                                         className="px-4 py-2 text-[10px] tracking-[0.15em] text-neutral-600 transition-colors hover:text-white"
                                                     >
                                                         CANCEL
                                                     </button>
                                                 </div>
+                                                {nameErr && (
+                                                    <p className="mt-3 text-[10px] tracking-[0.1em] text-red-400/80">
+                                                        {nameErr}
+                                                    </p>
+                                                )}
+                                                {nameFetcher.data?.error && (
+                                                    <p className="mt-3 text-[10px] tracking-[0.1em] text-red-400/80">
+                                                        {nameFetcher.data.error}
+                                                    </p>
+                                                )}
                                             </div>
-                                        </Form>
+                                        </nameFetcher.Form>
                                     ) : (
                                         <button
                                             type="button"

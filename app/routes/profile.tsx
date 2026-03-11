@@ -66,7 +66,6 @@ async function changeName(
     usernameEntry: FormDataEntryValue | null,
     session: NonNullable<Awaited<ReturnType<typeof getAuthenticatedSession>>>,
 ) {
-
     if (typeof usernameEntry !== "string") {
         return { error: "Invalid username" };
     }
@@ -82,7 +81,32 @@ async function changeName(
         username,
     });
 
-    return redirect("/profile");
+    return {
+        ok: true,
+        displayName: username,
+    };
+}
+
+async function validateUsername(usernameEntry: FormDataEntryValue | null) {
+    if (typeof usernameEntry !== "string") {
+        return "";
+    }
+
+    const username = usernameEntry.trim();
+
+    if (!username) {
+        return "You cannot have an empty username";
+    }
+
+    const existingUser = await convex.query((api as any).users.getUserByUsername, {
+        username,
+    });
+
+    if (existingUser) {
+        return "That username is already taken";
+    }
+
+    return "";
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -96,14 +120,17 @@ export async function action({ request }: ActionFunctionArgs) {
     const intent = formData.get("intent");
 
     switch (intent) {
-
         case "logout":
             return logout(request);
 
         case "change-username": {
             const usernameEntry = formData.get("username");
             return changeName(usernameEntry, session);
+        }
 
+        case "validate-username": {
+            const usernameEntry = formData.get("username");
+            return validateUsername(usernameEntry);
         }
 
         default:
