@@ -3,7 +3,6 @@ import { Login } from "../views/login";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import bcrypt from "bcryptjs";
-import crypto from "node:crypto";
 import { makeSessionCookie } from "./sessionCookieMaker";
 
 const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string);
