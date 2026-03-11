@@ -21,19 +21,49 @@ export async function action({ request }: ActionFunctionArgs) {
         return { error: "Invalid input" };
     }
 
-    const userInfo = await convex.query((api as any).users.getUserByEmail, {
-        email,
-    });
-    const passwordCorrect = await bcrypt.compare(password, userInfo.password);
-    if (passwordCorrect) {
-        const cookie = await makeSessionCookie({ request, userInfo });
-
-        return redirect("/home", {
-            headers: {
-                "Set-Cookie": cookie,
-            },
+    let userInfo;
+    try {
+        userInfo = await convex.query((api as any).users.getUserByEmail, {
+            email,
         });
+    } catch (error) {
+        return new Response(
+            JSON.stringify({ error: "Invalid email or password" }),
+            {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            },
+        );
     }
+
+    if (!userInfo || !userInfo.password) {
+        return new Response(
+            JSON.stringify({ error: "Invalid email or password" }),
+            {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            },
+        );
+    }
+
+    const passwordCorrect = await bcrypt.compare(password, userInfo.password);
+    if (!passwordCorrect) {
+        return new Response(
+            JSON.stringify({ error: "Invalid email or password" }),
+            {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            },
+        );
+    }
+
+    const cookie = await makeSessionCookie({ request, userInfo });
+
+    return redirect("/home", {
+        headers: {
+            "Set-Cookie": cookie,
+        },
+    });
 }
 
 export default function Page() {
