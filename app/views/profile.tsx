@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Form } from "react-router";
 import { Nav } from "~/components/nav";
 import { InputField } from "~/components/input-field";
 import { Panel } from "~/components/panel";
@@ -33,9 +34,8 @@ function SettingRow({
                 {label}
             </span>
             <span
-                className={`text-right text-xs ${mono ? "tabular-nums" : ""} ${
-                    accent ? "text-lime" : "text-neutral-400"
-                }`}
+                className={`text-right text-xs ${mono ? "tabular-nums" : ""} ${accent ? "text-lime" : "text-neutral-400"
+                    }`}
             >
                 {value}
             </span>
@@ -260,11 +260,10 @@ export function Profile() {
                                     {/* Password match indicator */}
                                     {confirmPassword.length > 0 && (
                                         <p
-                                            className={`text-[10px] tracking-[0.15em] ${
-                                                passwordsMatch
-                                                    ? "text-lime/70"
-                                                    : "text-red-400/80"
-                                            }`}
+                                            className={`text-[10px] tracking-[0.15em] ${passwordsMatch
+                                                ? "text-lime/70"
+                                                : "text-red-400/80"
+                                                }`}
                                         >
                                             {passwordsMatch
                                                 ? "// passwords match"
@@ -292,21 +291,23 @@ export function Profile() {
                         </section>
 
                         {/* ── Session ── */}
-                        <section>
-                            <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
-                                SESSION
-                            </p>
+                        <Form method="post" className="space-y-5 px-5 py-5">
+                            <section>
+                                <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
+                                    SESSION
+                                </p>
 
-                            <button
-                                type="button"
-                                className="w-full border border-neutral-800/80 bg-[#0a0a0a] px-5 py-4 text-[11px] tracking-[0.2em] text-neutral-500 transition-all hover:border-neutral-700 hover:text-white sm:w-auto"
-                            >
-                                SIGN OUT &rarr;
-                            </button>
-                            <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
-                                {"// end your current session"}
-                            </p>
-                        </section>
+                                <button
+                                    type="submit"
+                                    className="w-full border border-neutral-800/80 bg-[#0a0a0a] px-5 py-4 text-[11px] tracking-[0.2em] text-neutral-500 transition-all hover:border-neutral-700 hover:text-white sm:w-auto"
+                                >
+                                    SIGN OUT &rarr;
+                                </button>
+                                <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
+                                    {"// end your current session"}
+                                </p>
+                            </section>
+                        </Form>
                     </div>
 
                     {/* ──── Right: Account Summary Panel ──── */}
@@ -403,6 +404,6 @@ export function Profile() {
             </div>
 
             <Footer label="PROFILE" />
-        </main>
+        </main >
     );
 }
