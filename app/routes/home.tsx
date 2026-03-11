@@ -14,7 +14,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         return redirect("/login");
     }
 
-    const user = await convex.query((api as any).users.getUser, {
+    const user = await convex.query(api.users.getUser, {
         id: session.userId,
     });
 
