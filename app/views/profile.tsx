@@ -1,18 +1,16 @@
 import { useState } from "react";
+import { Form } from "react-router";
 import { Nav } from "~/components/nav";
 import { InputField } from "~/components/input-field";
 import { Panel } from "~/components/panel";
 import { Footer } from "~/components/footer";
 
-/*
- * Mock data — replace with real data once the API / data layer is wired up.
- */
-const ACCOUNT = {
-    displayName: "ghostkey_",
-    email: "ghost@royaltype.gg",
-    rank: "DIAMOND III",
-    level: 42,
-    memberSince: "2025-03-14",
+type ProfileData = {
+    displayName: string;
+    email: string;
+    rank: string;
+    level: number;
+    memberSince: number;
 };
 
 /* ─── Setting Row (read-only field display) ─── */
@@ -33,9 +31,8 @@ function SettingRow({
                 {label}
             </span>
             <span
-                className={`text-right text-xs ${mono ? "tabular-nums" : ""} ${
-                    accent ? "text-lime" : "text-neutral-400"
-                }`}
+                className={`text-right text-xs ${mono ? "tabular-nums" : ""} ${accent ? "text-lime" : "text-neutral-400"
+                    }`}
             >
                 {value}
             </span>
@@ -46,11 +43,11 @@ function SettingRow({
 /* ═══════════════════════════════════════════════════════
    PROFILE VIEW
    ═══════════════════════════════════════════════════════ */
-export function Profile() {
+export function Profile({ profile }: { profile: ProfileData }) {
     /* Display name inline-edit state */
     const [isEditingName, setIsEditingName] = useState(false);
-    const [displayName, setDisplayName] = useState(ACCOUNT.displayName);
-    const [nameInput, setNameInput] = useState(ACCOUNT.displayName);
+    const [displayName, setDisplayName] = useState(profile.displayName);
+    const [nameInput, setNameInput] = useState(profile.displayName);
 
     /* Password form state */
     const [currentPassword, setCurrentPassword] = useState("");
@@ -86,7 +83,7 @@ export function Profile() {
         newPassword.length >= 8 &&
         passwordsMatch;
 
-    const memberDate = new Date(ACCOUNT.memberSince).toLocaleDateString(
+    const memberDate = new Date(profile.memberSince).toLocaleDateString(
         "en-US",
         { year: "numeric", month: "short", day: "numeric" }
     );
@@ -207,7 +204,7 @@ export function Profile() {
                                     </span>
                                     <div className="flex items-center gap-3">
                                         <span className="text-sm tracking-wide text-neutral-400">
-                                            {ACCOUNT.email}
+                                            {profile.email}
                                         </span>
                                         <span className="border border-neutral-800 px-2 py-0.5 text-[8px] tracking-[0.2em] text-neutral-700">
                                             VERIFIED
@@ -260,11 +257,10 @@ export function Profile() {
                                     {/* Password match indicator */}
                                     {confirmPassword.length > 0 && (
                                         <p
-                                            className={`text-[10px] tracking-[0.15em] ${
-                                                passwordsMatch
-                                                    ? "text-lime/70"
-                                                    : "text-red-400/80"
-                                            }`}
+                                            className={`text-[10px] tracking-[0.15em] ${passwordsMatch
+                                                ? "text-lime/70"
+                                                : "text-red-400/80"
+                                                }`}
                                         >
                                             {passwordsMatch
                                                 ? "// passwords match"
@@ -292,21 +288,25 @@ export function Profile() {
                         </section>
 
                         {/* ── Session ── */}
-                        <section>
-                            <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
-                                SESSION
-                            </p>
+                        <Form method="post" className="space-y-5 px-5 py-5">
+                            <section>
+                                <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
+                                    SESSION
+                                </p>
 
-                            <button
-                                type="button"
-                                className="w-full border border-neutral-800/80 bg-[#0a0a0a] px-5 py-4 text-[11px] tracking-[0.2em] text-neutral-500 transition-all hover:border-neutral-700 hover:text-white sm:w-auto"
-                            >
-                                SIGN OUT &rarr;
-                            </button>
-                            <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
-                                {"// end your current session"}
-                            </p>
-                        </section>
+                                <button
+                                    type="submit"
+                                    name="intent"
+                                    value="logout"
+                                    className="w-full border border-neutral-800/80 bg-[#0a0a0a] px-5 py-4 text-[11px] tracking-[0.2em] text-neutral-500 transition-all hover:border-neutral-700 hover:text-white sm:w-auto"
+                                >
+                                    SIGN OUT &rarr;
+                                </button>
+                                <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
+                                    {"// end your current session"}
+                                </p>
+                            </section>
+                        </Form>
                     </div>
 
                     {/* ──── Right: Account Summary Panel ──── */}
@@ -325,18 +325,18 @@ export function Profile() {
                                         {displayName}
                                     </p>
                                     <p className="mt-1 text-[11px] tracking-wide text-neutral-600">
-                                        {ACCOUNT.email}
+                                        {profile.email}
                                     </p>
                                 </div>
 
                                 <SettingRow
                                     label="RANK"
-                                    value={ACCOUNT.rank}
+                                    value={profile.rank}
                                     accent
                                 />
                                 <SettingRow
                                     label="LEVEL"
-                                    value={`LVL ${ACCOUNT.level}`}
+                                    value={`LVL ${profile.level}`}
                                     mono
                                 />
                                 <SettingRow
@@ -395,14 +395,14 @@ export function Profile() {
 
                         {/* Decorative text below panels */}
                         <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">
-                            {displayName.toUpperCase()} / {ACCOUNT.rank} / LVL{" "}
-                            {ACCOUNT.level}
+                            {displayName.toUpperCase()} / {profile.rank} / LVL{" "}
+                            {profile.level}
                         </p>
                     </div>
                 </div>
             </div>
 
             <Footer label="PROFILE" />
-        </main>
+        </main >
     );
 }

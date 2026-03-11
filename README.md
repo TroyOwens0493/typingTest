@@ -4,64 +4,65 @@ A game that lets you create typing battle royals with your friends.
 
 ## Getting Started
 
-### Installation
+These steps will get the app running locally with Convex and the dev server.
 
-Install the dependencies:
+### 1) Install prerequisites
 
-```bash
-npm install
-```
+(You have probably done this already)
+- Install Node.js (LTS): https://nodejs.org/
+- Install pnpm: https://pnpm.io/installation
 
-### Development
-
-Start the development server with HMR:
+### 2) Install dependencies
 
 ```bash
-npm run dev
+pnpm install
 ```
 
-Your application will be available at `http://localhost:5173`.
+### 3) Start the Convex server
 
-## Building for Production
-
-Create a production build:
+In a new terminal window:
 
 ```bash
-npm run build
+npx convex dev
 ```
 
-## Deployment
+What to expect:
 
-### Docker Deployment
+- The first time you run this, Convex will ask you to sign in/create an account and create or select a project. (This is my database.)
+- It will create/update a `.env.local` file with your Convex deployment and URL.
+- Leave this command running while you develop/test, as it is what communicates with the server.
 
-To build and run using Docker:
+### 4) Start the app dev server
+
+In another terminal window:
 
 ```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
+pnpm dev
 ```
 
-The containerized application can be deployed to any platform that supports Docker, including:
+You should now have the app running locally. Go to the url to see the site.
+Keep both terminals open while you work.
 
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
+---
 
-### DIY Deployment
+If you run into issues with Convex, the docs are a great starting point:
+https://docs.convex.dev/
 
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
+## Project Structure (MVC)
 
-Make sure to deploy the output of `npm run build`
+This project is for a backend web dev class, so the structure is explained in MVC terms.
 
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
+- Model: `app/convex/` holds the data layer (schema + Convex functions). This is where most model logic lives because Convex is the database and server-side API. Example: `app/convex/schema.ts` defines tables, and `app/convex/users.ts` creates users.
+- Controller: `app/routes/` and `app/routes.ts` define the request handlers and routing. Example: `app/routes/signUp.tsx` accepts form data, hashes the password, and calls the Convex mutation.
+- View: `app/views/` contains page UI, and `app/components/` contains reusable UI pieces used by the views. (Partials)
+- Wiring: `app/root.tsx` sets up the `ConvexProvider` and the route outlet, connecting controllers to models and views. (This is the app's entry point)
+
+Request flow (simplified):
+
+```text
+View (app/views)
+  -> Controller (app/routes)
+  -> Model (app/convex)
+  -> Convex DB
+  -> View update
 ```

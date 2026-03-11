@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Form, Link } from "react-router";
 import { Logo } from "~/components/logo";
 import { InputField } from "~/components/input-field";
 import { Panel } from "~/components/panel";
 import { Footer } from "~/components/footer";
 
 export function SignUp() {
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -15,11 +16,6 @@ export function SignUp() {
     const passwordLongEnough = password.length >= 8;
     const canSubmit =
         email.length > 0 && passwordLongEnough && passwordsMatch;
-
-    function handleSubmit() {
-        if (!canSubmit) return;
-        // TODO: wire up to API
-    }
 
     return (
         <main className="relative flex min-h-screen flex-col bg-[#050505] font-mono text-neutral-400">
@@ -83,13 +79,22 @@ export function SignUp() {
                                 }
                             >
                                 {/* Form fields */}
-                                <div className="space-y-5 px-5 py-5">
+                                <Form method="post" className="space-y-5 px-5 py-5">
+                                    <InputField
+                                        label="USERNAME"
+                                        type="username"
+                                        value={username}
+                                        onChange={setUsername}
+                                        placeholder="numbers letter and no spaces"
+                                        name="username"
+                                    />
                                     <InputField
                                         label="EMAIL"
                                         type="email"
                                         value={email}
                                         onChange={setEmail}
                                         placeholder="you@example.com"
+                                        name="email"
                                     />
                                     <InputField
                                         label="PASSWORD"
@@ -97,6 +102,7 @@ export function SignUp() {
                                         value={password}
                                         onChange={setPassword}
                                         placeholder="minimum 8 characters"
+                                        name="password"
                                     />
                                     <InputField
                                         label="CONFIRM PASSWORD"
@@ -114,11 +120,10 @@ export function SignUp() {
                                     )}
                                     {confirmPassword.length > 0 && (
                                         <p
-                                            className={`text-[10px] tracking-[0.15em] ${
-                                                passwordsMatch
-                                                    ? "text-lime/70"
-                                                    : "text-red-400/80"
-                                            }`}
+                                            className={`text-[10px] tracking-[0.15em] ${passwordsMatch
+                                                ? "text-lime/70"
+                                                : "text-red-400/80"
+                                                }`}
                                         >
                                             {passwordsMatch
                                                 ? "// passwords match"
@@ -128,18 +133,17 @@ export function SignUp() {
 
                                     <div className="pt-1">
                                         <button
-                                            type="button"
-                                            onClick={handleSubmit}
+                                            type="submit"
                                             disabled={!canSubmit}
                                             className="w-full bg-lime py-3.5 text-[11px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d] disabled:cursor-not-allowed disabled:opacity-30 sm:w-auto sm:px-8"
                                         >
                                             CREATE ACCOUNT
                                         </button>
                                         <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
-                                            {"// you'll be redirected to the lobby"}
+                                            {"// you'll be redirected to your home page"}
                                         </p>
                                     </div>
-                                </div>
+                                </Form>
                             </Panel>
                         </section>
 

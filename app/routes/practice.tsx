@@ -1,8 +1,9 @@
-import type { LoaderFunctionArgs } from "react-router";
 import { Practice } from "~/views/practice";
+import type { LoaderFunctionArgs } from "react-router";
+import { authenticate } from "./authenticate";
 
-export function loader({ request }: LoaderFunctionArgs) {
-    return null;
+export async function loader({ request }: LoaderFunctionArgs) {
+    return authenticate(request);
 }
 
 export default function Page() {
