@@ -76,7 +76,7 @@ async function changeName(
         return { error: "Invalid username" };
     }
 
-    await convex.mutation((api as any).users.updateUsername, {
+    await convex.mutation(api.users.updateUsername, {
         id: session.userId,
         username,
     });
@@ -87,7 +87,10 @@ async function changeName(
     };
 }
 
-async function validateUsername(usernameEntry: FormDataEntryValue | null) {
+async function validateUsername(
+    usernameEntry: FormDataEntryValue | null,
+    session: NonNullable<Awaited<ReturnType<typeof getAuthenticatedSession>>>,
+) {
     if (typeof usernameEntry !== "string") {
         return "";
     }
@@ -102,9 +105,14 @@ async function validateUsername(usernameEntry: FormDataEntryValue | null) {
         username,
     });
 
-    if (existingUser) {
+    const userInfo = await convex.query(api.users.getUser, {
+        id: session.userId
+    });
+
+    if (existingUser && existingUser.username !== userInfo.username) {
         return "That username is already taken";
     }
+
 
     return "";
 }
@@ -130,7 +138,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
         case "validate-username": {
             const usernameEntry = formData.get("username");
-            return validateUsername(usernameEntry);
+            return validateUsername(usernameEntry, session);
         }
 
         default:
