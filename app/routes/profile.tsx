@@ -62,13 +62,50 @@ async function logout(
     });
 }
 
+async function changeName(
+    usernameEntry: FormDataEntryValue | null,
+    session: NonNullable<Awaited<ReturnType<typeof getAuthenticatedSession>>>,
+) {
+
+    if (typeof usernameEntry !== "string") {
+        return { error: "Invalid username" };
+    }
+
+    const username = usernameEntry.trim();
+
+    if (!username) {
+        return { error: "Invalid username" };
+    }
+
+    await convex.mutation((api as any).users.updateUsername, {
+        id: session.userId,
+        username,
+    });
+
+    return redirect("/profile");
+}
+
 export async function action({ request }: ActionFunctionArgs) {
+    const session = await getAuthenticatedSession(request);
+
+    if (!session) {
+        return redirect("/login");
+    }
+
     const formData = await request.formData();
     const intent = formData.get("intent");
 
     switch (intent) {
+
         case "logout":
             return logout(request);
+
+        case "change-username": {
+            const usernameEntry = formData.get("username");
+            return changeName(usernameEntry, session);
+
+        }
+
         default:
             return null;
     }

@@ -75,3 +75,22 @@ export const getUserByEmail = query({
         return accInfo;
     },
 });
+
+export const updateUsername = mutation({
+    args: {
+        id: v.id("user"),
+        username: v.string(),
+    },
+
+    handler: async (ctx, args) => {
+        const user = await ctx.db.get(args.id);
+
+        if (!user) {
+            throw new Error("User doesn't exist");
+        }
+
+        await ctx.db.patch(args.id, {
+            username: args.username,
+        });
+    },
+});

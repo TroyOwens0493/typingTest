@@ -46,7 +46,6 @@ function SettingRow({
 export function Profile({ profile }: { profile: ProfileData }) {
     /* Display name inline-edit state */
     const [isEditingName, setIsEditingName] = useState(false);
-    const [displayName, setDisplayName] = useState(profile.displayName);
     const [nameInput, setNameInput] = useState(profile.displayName);
 
     /* Password form state */
@@ -57,15 +56,8 @@ export function Profile({ profile }: { profile: ProfileData }) {
     /* Delete confirmation state */
     const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-    function handleSaveName() {
-        if (nameInput.trim()) {
-            setDisplayName(nameInput.trim());
-        }
-        setIsEditingName(false);
-    }
-
     function handleCancelName() {
-        setNameInput(displayName);
+        setNameInput(profile.displayName);
         setIsEditingName(false);
     }
 
@@ -138,11 +130,11 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                         </span>
                                         {!isEditingName && (
                                             <button
-                                                type="button"
                                                 onClick={() =>
                                                     setIsEditingName(true)
                                                 }
                                                 className="text-[9px] tracking-[0.2em] text-neutral-700 transition-colors hover:text-lime"
+                                                type="button"
                                             >
                                                 EDIT
                                             </button>
@@ -150,35 +142,42 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                     </div>
 
                                     {isEditingName ? (
-                                        <div>
+                                        <Form method="post">
                                             <input
-                                                type="text"
-                                                value={nameInput}
-                                                onChange={(e) =>
-                                                    setNameInput(e.target.value)
-                                                }
-                                                className="w-full border border-lime/40 bg-transparent px-3 py-2.5 text-sm tracking-wide text-white outline-none"
+                                                type="hidden"
+                                                name="intent"
+                                                value="change-username"
                                             />
-                                            <div className="mt-3 flex items-center gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleSaveName}
-                                                    disabled={
-                                                        !nameInput.trim()
+                                            <div>
+                                                <input
+                                                    type="text"
+                                                    name="username"
+                                                    value={nameInput}
+                                                    onChange={(e) =>
+                                                        setNameInput(e.target.value)
                                                     }
-                                                    className="bg-lime px-5 py-2 text-[10px] font-bold tracking-[0.15em] text-black transition-colors hover:bg-[#d4ff4d] disabled:opacity-40"
-                                                >
-                                                    SAVE
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleCancelName}
-                                                    className="px-4 py-2 text-[10px] tracking-[0.15em] text-neutral-600 transition-colors hover:text-white"
-                                                >
-                                                    CANCEL
-                                                </button>
+                                                    className="w-full border border-lime/40 bg-transparent px-3 py-2.5 text-sm tracking-wide text-white outline-none"
+                                                />
+                                                <div className="mt-3 flex items-center gap-3">
+                                                    <button
+                                                        type="submit"
+                                                        disabled={
+                                                            !nameInput.trim()
+                                                        }
+                                                        className="bg-lime px-5 py-2 text-[10px] font-bold tracking-[0.15em] text-black transition-colors hover:bg-[#d4ff4d] disabled:opacity-40"
+                                                    >
+                                                        SAVE
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleCancelName}
+                                                        className="px-4 py-2 text-[10px] tracking-[0.15em] text-neutral-600 transition-colors hover:text-white"
+                                                    >
+                                                        CANCEL
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
+                                        </Form>
                                     ) : (
                                         <button
                                             type="button"
@@ -188,7 +187,7 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                             className="group flex items-center gap-3"
                                         >
                                             <span className="text-sm tracking-wide text-white transition-colors group-hover:text-lime">
-                                                {displayName}
+                                                {profile.displayName}
                                             </span>
                                             <span className="text-[9px] text-neutral-800 transition-colors group-hover:text-neutral-600">
                                                 &#9998;
@@ -319,10 +318,10 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                 {/* Avatar / identity block */}
                                 <div className="px-4 py-5 sm:px-5">
                                     <div className="flex h-12 w-12 items-center justify-center border border-neutral-800 bg-[#050505] font-display text-lg font-bold text-lime">
-                                        {displayName.charAt(0).toUpperCase()}
+                                        {profile.displayName.charAt(0).toUpperCase()}
                                     </div>
                                     <p className="mt-3 font-display text-lg font-bold tracking-tight text-white">
-                                        {displayName}
+                                        {profile.displayName}
                                     </p>
                                     <p className="mt-1 text-[11px] tracking-wide text-neutral-600">
                                         {profile.email}
@@ -395,12 +394,12 @@ export function Profile({ profile }: { profile: ProfileData }) {
 
                         {/* Decorative text below panels */}
                         <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">
-                            {displayName.toUpperCase()} / {profile.rank} / LVL{" "}
+                            {profile.displayName.toUpperCase()} / {profile.rank} / LVL{" "}
                             {profile.level}
                         </p>
                     </div>
                 </div>
-            </div>
+            </div >
 
             <Footer label="PROFILE" />
         </main >
