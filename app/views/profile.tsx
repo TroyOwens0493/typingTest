@@ -299,6 +299,8 @@ export function Profile() {
 
                                 <button
                                     type="submit"
+                                    name="intent"
+                                    value="logout"
                                     className="w-full border border-neutral-800/80 bg-[#0a0a0a] px-5 py-4 text-[11px] tracking-[0.2em] text-neutral-500 transition-all hover:border-neutral-700 hover:text-white sm:w-auto"
                                 >
                                     SIGN OUT &rarr;
