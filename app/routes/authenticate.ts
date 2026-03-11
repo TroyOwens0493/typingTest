@@ -29,7 +29,7 @@ export async function getAuthenticatedSession(request: Request) {
     }
 
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    const session = await convex.query((api as any).sessions.getSessionByTokenHash, {
+    const session = await convex.query(api.sessions.getSessionByTokenHash, {
         tokenHash,
     });
 
