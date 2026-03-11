@@ -33,13 +33,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
     try {
         // Create a new user
-        const userId = await convex.mutation((api as any).users.createUser, {
+        const userId = await convex.mutation(api.users.createUser, {
             username,
             email,
             password: passwordHash,
         });
 
-        const userInfo = await convex.query((api as any).users.getUser, {
+        const userInfo = await convex.query(api.users.getUser, {
             id: userId,
         });
 
