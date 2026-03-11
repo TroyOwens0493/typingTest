@@ -2,32 +2,64 @@ import { Nav } from "~/components/nav";
 import { Panel } from "~/components/panel";
 import { Footer } from "~/components/footer";
 
-/*
- * Mock data — replace with real data once the API / data layer is wired up.
- */
-const PLAYER = {
-    name: "ghostkey_",
-    rank: "DIAMOND III",
-    level: 42,
+type Dashboard = {
+    name: string;
+    rank: string;
+    level: number;
+    gamesPlayed: number;
+    gamesWon: number;
+    averageWPM: number;
+    peakWPM: number;
+    totalTime: number;
+    averageAccuracy: number;
+    recentSessions: Array<{
+        id: number;
+        duration: string;
+        wpm: number;
+        accuracy: number;
+        result: string;
+        place: number;
+    }>;
 };
 
-const STATS = {
-    gamesPlayed: 142,
-    gamesWon: 89,
-    winRate: 63,
-    avgWpm: 78,
-    peakWpm: 124,
-    totalTime: "42h 17m",
-    avgAccuracy: 94,
-};
+function formatTotalTime(totalTime: number) {
+    if (totalTime <= 0) {
+        return "0s";
+    }
 
-const RECENT_SESSIONS = [
-    { id: 1, duration: "2m 34s", wpm: 92, accuracy: 97, result: "WIN" as const, placed: "1st", of: 6 },
-    { id: 2, duration: "1m 48s", wpm: 84, accuracy: 94, result: "ELIM" as const, placed: "3rd", of: 8 },
-    { id: 3, duration: "3m 12s", wpm: 76, accuracy: 91, result: "WIN" as const, placed: "1st", of: 4 },
-    { id: 4, duration: "2m 01s", wpm: 88, accuracy: 96, result: "ELIM" as const, placed: "4th", of: 10 },
-    { id: 5, duration: "2m 55s", wpm: 81, accuracy: 93, result: "WIN" as const, placed: "1st", of: 5 },
-];
+    const hours = Math.floor(totalTime / 3600);
+    const minutes = Math.floor((totalTime % 3600) / 60);
+    const seconds = totalTime % 60;
+
+    if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+    }
+
+    if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+    }
+
+    return `${seconds}s`;
+}
+
+function formatPlace(place: number) {
+    const mod10 = place % 10;
+    const mod100 = place % 100;
+
+    if (mod10 === 1 && mod100 !== 11) {
+        return `${place}st`;
+    }
+
+    if (mod10 === 2 && mod100 !== 12) {
+        return `${place}nd`;
+    }
+
+    if (mod10 === 3 && mod100 !== 13) {
+        return `${place}rd`;
+    }
+
+    return `${place}th`;
+}
 
 /* ─── Stat Card ─── */
 function StatCard({
@@ -55,7 +87,12 @@ function StatCard({
     );
 }
 
-export function Main() {
+export function Main({ dashboard }: { dashboard: Dashboard }) {
+    const winRate =
+        dashboard.gamesPlayed > 0
+            ? Math.round((dashboard.gamesWon / dashboard.gamesPlayed) * 100)
+            : 0;
+
     return (
         <main className="relative flex min-h-screen flex-col bg-[#050505] font-mono text-neutral-400">
             {/* Scanline texture overlay */}
@@ -81,14 +118,14 @@ export function Main() {
 
                     <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
                         <h1 className="font-display text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1] tracking-tight text-white">
-                            {PLAYER.name}
+                            {dashboard.name}
                         </h1>
                         <div className="mb-1 flex items-center gap-3">
                             <span className="border border-lime/30 px-2.5 py-1 text-[9px] tracking-[0.25em] text-lime">
-                                {PLAYER.rank}
+                                {dashboard.rank}
                             </span>
                             <span className="text-[10px] tracking-[0.2em] text-neutral-700">
-                                LVL {PLAYER.level}
+                                LVL {dashboard.level}
                             </span>
                         </div>
                     </div>
@@ -103,34 +140,34 @@ export function Main() {
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                         <StatCard
                             label="GAMES PLAYED"
-                            value={STATS.gamesPlayed}
+                            value={dashboard.gamesPlayed}
                         />
                         <StatCard
                             label="GAMES WON"
-                            value={STATS.gamesWon}
+                            value={dashboard.gamesWon}
                         />
                         <StatCard
                             label="WIN RATE"
-                            value={`${STATS.winRate}%`}
+                            value={`${winRate}%`}
                             accent
                         />
                         <StatCard
                             label="AVG WPM"
-                            value={STATS.avgWpm}
+                            value={dashboard.averageWPM}
                             accent
                         />
                         <StatCard
                             label="PEAK WPM"
-                            value={STATS.peakWpm}
+                            value={dashboard.peakWPM}
                             accent
                         />
                         <StatCard
                             label="TOTAL TIME"
-                            value={STATS.totalTime}
+                            value={formatTotalTime(dashboard.totalTime)}
                         />
                         <StatCard
                             label="AVG ACCURACY"
-                            value={`${STATS.avgAccuracy}%`}
+                            value={`${dashboard.averageAccuracy}%`}
                         />
                     </div>
                 </section>
@@ -141,7 +178,7 @@ export function Main() {
                         label="RECENT SESSIONS"
                         headerRight={
                             <span className="text-[10px] tabular-nums tracking-[0.2em] text-neutral-600">
-                                LAST {RECENT_SESSIONS.length}
+                                LAST {dashboard.recentSessions.length}
                             </span>
                         }
                     >
@@ -152,45 +189,48 @@ export function Main() {
                             <span>WPM</span>
                             <span>ACC</span>
                             <span>RESULT</span>
-                            <span className="text-right">PLACED</span>
+                            <span className="text-right">PLACE</span>
                         </div>
 
                         {/* Rows */}
                         <div className="divide-y divide-neutral-800/50">
-                            {RECENT_SESSIONS.map((session) => (
-                                <div
-                                    key={session.id}
-                                    className="grid grid-cols-[2.5rem_5.5rem_4rem_4.5rem_4rem_1fr] items-center gap-2 px-5 py-3.5 text-xs transition-colors hover:bg-neutral-800/10"
-                                >
-                                    <span className="tabular-nums text-neutral-700">
-                                        {session.id}
-                                    </span>
-                                    <span className="tabular-nums text-neutral-500">
-                                        {session.duration}
-                                    </span>
-                                    <span className="tabular-nums text-lime">
-                                        {session.wpm}
-                                    </span>
-                                    <span className="tabular-nums text-neutral-400">
-                                        {session.accuracy}%
-                                    </span>
-                                    <span
-                                        className={`text-[10px] font-medium tracking-[0.15em] ${
-                                            session.result === "WIN"
-                                                ? "text-lime"
-                                                : "text-red-400/80"
-                                        }`}
+                            {dashboard.recentSessions.length > 0 ? (
+                                dashboard.recentSessions.map((session) => (
+                                    <div
+                                        key={session.id}
+                                        className="grid grid-cols-[2.5rem_5.5rem_4rem_4.5rem_4rem_1fr] items-center gap-2 px-5 py-3.5 text-xs transition-colors hover:bg-neutral-800/10"
                                     >
-                                        {session.result}
-                                    </span>
-                                    <span className="text-right tabular-nums text-neutral-600">
-                                        {session.placed}{" "}
-                                        <span className="text-neutral-800">
-                                            / {session.of}
+                                        <span className="tabular-nums text-neutral-700">
+                                            {session.id}
                                         </span>
-                                    </span>
+                                        <span className="tabular-nums text-neutral-500">
+                                            {session.duration}
+                                        </span>
+                                        <span className="tabular-nums text-lime">
+                                            {session.wpm}
+                                        </span>
+                                        <span className="tabular-nums text-neutral-400">
+                                            {session.accuracy}%
+                                        </span>
+                                        <span
+                                            className={`text-[10px] font-medium tracking-[0.15em] ${
+                                                session.result.toUpperCase() === "WIN"
+                                                    ? "text-lime"
+                                                    : "text-red-400/80"
+                                            }`}
+                                        >
+                                            {session.result}
+                                        </span>
+                                        <span className="text-right tabular-nums text-neutral-600">
+                                            {formatPlace(session.place)}
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="px-5 py-6 text-xs tracking-[0.15em] text-neutral-700">
+                                    NO SESSIONS RECORDED YET
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </Panel>
                 </section>

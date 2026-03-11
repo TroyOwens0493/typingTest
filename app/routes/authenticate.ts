@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 
 const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string);
 
-function getCookieValue(cookieHeader: string | null, name: string) {
+export function getCookieValue(cookieHeader: string | null, name: string) {
     if (!cookieHeader) {
         return null;
     }
@@ -21,11 +21,11 @@ function getCookieValue(cookieHeader: string | null, name: string) {
     return null;
 }
 
-export async function authenticate(request: Request): Promise<Response | void> {
+export async function getAuthenticatedSession(request: Request) {
     const token = getCookieValue(request.headers.get("cookie"), "session");
 
     if (!token) {
-        return redirect("/login");
+        return null;
     }
 
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
@@ -34,6 +34,16 @@ export async function authenticate(request: Request): Promise<Response | void> {
     });
 
     if (!session || session.expiresAt <= Date.now()) {
+        return null;
+    }
+
+    return session;
+}
+
+export async function authenticate(request: Request): Promise<Response | void> {
+    const session = await getAuthenticatedSession(request);
+
+    if (!session) {
         return redirect("/login");
     }
 
