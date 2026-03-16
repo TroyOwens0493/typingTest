@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Form } from "react-router";
+import { useCallback, useEffect, useState } from "react";
+import { Form, useFetcher } from "react-router";
 import { Nav } from "~/components/nav";
 import { InputField } from "~/components/input-field";
 import { Panel } from "~/components/panel";
@@ -46,42 +46,90 @@ function SettingRow({
 export function Profile({ profile }: { profile: ProfileData }) {
     /* Display name inline-edit state */
     const [isEditingName, setIsEditingName] = useState(false);
-    const [displayName, setDisplayName] = useState(profile.displayName);
     const [nameInput, setNameInput] = useState(profile.displayName);
+    const nameFetcher = useFetcher<{
+        ok?: boolean;
+        error?: string;
+        displayName?: string;
+    }>();
+    const nameValidationFetcher = useFetcher<string>();
+    const [nameErr, setNameErr] = useState("");
 
     /* Password form state */
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const passwordFetcher = useFetcher<{
+        ok?: boolean;
+        error?: string;
+    }>();
+
+    const deleteAccountFetcher = useFetcher<{
+        error?: string;
+    }>();
+    const [deletePassword, setDeletePassword] = useState("");
 
     /* Delete confirmation state */
     const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-    function handleSaveName() {
-        if (nameInput.trim()) {
-            setDisplayName(nameInput.trim());
+    useEffect(() => {
+        setNameInput(profile.displayName);
+    }, [profile.displayName]);
+
+    useEffect(() => {
+        if (nameFetcher.state === "idle" && nameFetcher.data?.ok) {
+            setIsEditingName(false);
+            setNameErr("");
+            setNameInput(nameFetcher.data.displayName ?? profile.displayName);
         }
-        setIsEditingName(false);
-    }
+    }, [nameFetcher.data, nameFetcher.state, profile.displayName]);
+
+    useEffect(() => {
+        if (typeof nameValidationFetcher.data === "string") {
+            setNameErr(nameValidationFetcher.data);
+        }
+    }, [nameValidationFetcher.data]);
 
     function handleCancelName() {
-        setNameInput(displayName);
+        setNameInput(profile.displayName);
         setIsEditingName(false);
     }
 
-    function handlePasswordSubmit() {
-        // TODO: wire up to API
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-    }
+    const validateNameInput = useCallback((nameInput: string) => {
+        const trimmedName = nameInput.trim();
+
+        if (!trimmedName) {
+            setNameErr("You cannot have an empty username");
+            return;
+        }
+
+        nameValidationFetcher.submit({
+            intent: 'validate-username',
+            username: trimmedName,
+        }, {
+            method: 'post',
+            action: '/profile',
+        });
+    }, [nameValidationFetcher]);
+
+    // Debounce input
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            validateNameInput(nameInput);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [nameInput, validateNameInput]);
 
     const passwordsMatch =
         newPassword.length > 0 && newPassword === confirmPassword;
     const canSubmitPassword =
         currentPassword.length > 0 &&
         newPassword.length >= 8 &&
-        passwordsMatch;
+        passwordsMatch &&
+        passwordFetcher.state === "idle";
+    const canSubmitDelete =
+        deletePassword.trim().length > 0 &&
+        deleteAccountFetcher.state === "idle";
 
     const memberDate = new Date(profile.memberSince).toLocaleDateString(
         "en-US",
@@ -138,11 +186,11 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                         </span>
                                         {!isEditingName && (
                                             <button
-                                                type="button"
                                                 onClick={() =>
                                                     setIsEditingName(true)
                                                 }
                                                 className="text-[9px] tracking-[0.2em] text-neutral-700 transition-colors hover:text-lime"
+                                                type="button"
                                             >
                                                 EDIT
                                             </button>
@@ -150,35 +198,57 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                     </div>
 
                                     {isEditingName ? (
-                                        <div>
+                                        <nameFetcher.Form method="post">
                                             <input
-                                                type="text"
-                                                value={nameInput}
-                                                onChange={(e) =>
-                                                    setNameInput(e.target.value)
-                                                }
-                                                className="w-full border border-lime/40 bg-transparent px-3 py-2.5 text-sm tracking-wide text-white outline-none"
+                                                type="hidden"
+                                                name="intent"
+                                                value="change-username"
                                             />
-                                            <div className="mt-3 flex items-center gap-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleSaveName}
-                                                    disabled={
-                                                        !nameInput.trim()
+                                            <div>
+                                                <input
+                                                    type="text"
+                                                    name="username"
+                                                    value={nameInput}
+                                                    onChange={(e) =>
+                                                        setNameInput(e.target.value)
                                                     }
-                                                    className="bg-lime px-5 py-2 text-[10px] font-bold tracking-[0.15em] text-black transition-colors hover:bg-[#d4ff4d] disabled:opacity-40"
-                                                >
-                                                    SAVE
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={handleCancelName}
-                                                    className="px-4 py-2 text-[10px] tracking-[0.15em] text-neutral-600 transition-colors hover:text-white"
-                                                >
-                                                    CANCEL
-                                                </button>
+                                                    className="w-full border border-lime/40 bg-transparent px-3 py-2.5 text-sm tracking-wide text-white outline-none"
+                                                />
+                                                <div className="mt-3 flex items-center gap-3">
+                                                    <button
+                                                        type="submit"
+                                                        disabled={
+                                                            !nameInput.trim() ||
+                                                            !!nameErr ||
+                                                            nameFetcher.state !== "idle"
+                                                        }
+                                                        className="bg-lime px-5 py-2 text-[10px] font-bold tracking-[0.15em] text-black transition-colors hover:bg-[#d4ff4d] disabled:opacity-40"
+                                                    >
+                                                        {nameFetcher.state === "submitting"
+                                                            ? "SAVING..."
+                                                            : "SAVE"}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        disabled={nameFetcher.state !== "idle"}
+                                                        onClick={handleCancelName}
+                                                        className="px-4 py-2 text-[10px] tracking-[0.15em] text-neutral-600 transition-colors hover:text-white"
+                                                    >
+                                                        CANCEL
+                                                    </button>
+                                                </div>
+                                                {nameErr && (
+                                                    <p className="mt-3 text-[10px] tracking-[0.1em] text-red-400/80">
+                                                        {nameErr}
+                                                    </p>
+                                                )}
+                                                {nameFetcher.data?.error && (
+                                                    <p className="mt-3 text-[10px] tracking-[0.1em] text-red-400/80">
+                                                        {nameFetcher.data.error}
+                                                    </p>
+                                                )}
                                             </div>
-                                        </div>
+                                        </nameFetcher.Form>
                                     ) : (
                                         <button
                                             type="button"
@@ -188,7 +258,7 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                             className="group flex items-center gap-3"
                                         >
                                             <span className="text-sm tracking-wide text-white transition-colors group-hover:text-lime">
-                                                {displayName}
+                                                {profile.displayName}
                                             </span>
                                             <span className="text-[9px] text-neutral-800 transition-colors group-hover:text-neutral-600">
                                                 &#9998;
@@ -231,59 +301,82 @@ export function Profile({ profile }: { profile: ProfileData }) {
                             </p>
 
                             <Panel label="CHANGE PASSWORD">
-                                <div className="space-y-5 px-5 py-5">
-                                    <InputField
-                                        label="CURRENT PASSWORD"
-                                        type="password"
-                                        value={currentPassword}
-                                        onChange={setCurrentPassword}
-                                        placeholder="••••••••••••"
+                                <passwordFetcher.Form method="post">
+                                    <input
+                                        type="hidden"
+                                        name="intent"
+                                        value="update-password"
                                     />
-                                    <InputField
-                                        label="NEW PASSWORD"
-                                        type="password"
-                                        value={newPassword}
-                                        onChange={setNewPassword}
-                                        placeholder="minimum 8 characters"
-                                    />
-                                    <InputField
-                                        label="CONFIRM NEW PASSWORD"
-                                        type="password"
-                                        value={confirmPassword}
-                                        onChange={setConfirmPassword}
-                                        placeholder="re-enter new password"
-                                    />
+                                    <div className="space-y-5 px-5 py-5">
+                                        <InputField
+                                            label="CURRENT PASSWORD"
+                                            type="password"
+                                            value={currentPassword}
+                                            onChange={setCurrentPassword}
+                                            placeholder="••••••••••••"
+                                            name="currentPassword"
+                                        />
+                                        <InputField
+                                            label="NEW PASSWORD"
+                                            type="password"
+                                            value={newPassword}
+                                            onChange={setNewPassword}
+                                            placeholder="minimum 8 characters"
+                                            name="newPassword"
+                                        />
+                                        <InputField
+                                            label="CONFIRM NEW PASSWORD"
+                                            type="password"
+                                            value={confirmPassword}
+                                            onChange={setConfirmPassword}
+                                            placeholder="re-enter new password"
+                                            name="confirmPassword"
+                                        />
 
-                                    {/* Password match indicator */}
-                                    {confirmPassword.length > 0 && (
-                                        <p
-                                            className={`text-[10px] tracking-[0.15em] ${passwordsMatch
-                                                ? "text-lime/70"
-                                                : "text-red-400/80"
-                                                }`}
-                                        >
-                                            {passwordsMatch
-                                                ? "// passwords match"
-                                                : "// passwords do not match"}
-                                        </p>
-                                    )}
+                                        {newPassword.length > 0 && newPassword.length < 8 && (
+                                            <p className="text-[10px] tracking-[0.15em] text-red-400/80">
+                                                {"// password must be at least 8 characters"}
+                                            </p>
+                                        )}
 
-                                    <div className="pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={handlePasswordSubmit}
-                                            disabled={!canSubmitPassword}
-                                            className="bg-lime px-6 py-3 text-[10px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d] disabled:cursor-not-allowed disabled:opacity-30"
-                                        >
-                                            UPDATE PASSWORD
-                                        </button>
-                                        <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
-                                            {
-                                                "// you will need to sign in again after changing your password"
-                                            }
-                                        </p>
+                                        {/* Password match indicator */}
+                                        {confirmPassword.length > 0 && (
+                                            <p
+                                                className={`text-[10px] tracking-[0.15em] ${passwordsMatch
+                                                    ? "text-lime/70"
+                                                    : "text-red-400/80"
+                                                    }`}
+                                            >
+                                                {passwordsMatch
+                                                    ? "// passwords match"
+                                                    : "// passwords do not match"}
+                                            </p>
+                                        )}
+
+                                        {passwordFetcher.data?.error && (
+                                            <p className="text-[10px] tracking-[0.15em] text-red-400/80">
+                                                {`// ${passwordFetcher.data.error}`}
+                                            </p>
+                                        )}
+
+                                        <div className="pt-1">
+                                            <button
+                                                type="submit"
+                                                disabled={!canSubmitPassword}
+                                                className="bg-lime px-6 py-3 text-[10px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d] disabled:cursor-not-allowed disabled:opacity-30"
+                                            >
+                                                {passwordFetcher.state === "submitting"
+                                                    ? "UPDATING..."
+                                                    : "UPDATE PASSWORD"}
+                                            </button>
+                                            <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
+                                                {
+                                                    "// you will need to sign in again after changing your password"
+                                                }
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
+                                </passwordFetcher.Form>
                             </Panel>
                         </section>
 
@@ -319,10 +412,10 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                 {/* Avatar / identity block */}
                                 <div className="px-4 py-5 sm:px-5">
                                     <div className="flex h-12 w-12 items-center justify-center border border-neutral-800 bg-[#050505] font-display text-lg font-bold text-lime">
-                                        {displayName.charAt(0).toUpperCase()}
+                                        {profile.displayName.charAt(0).toUpperCase()}
                                     </div>
                                     <p className="mt-3 font-display text-lg font-bold tracking-tight text-white">
-                                        {displayName}
+                                        {profile.displayName}
                                     </p>
                                     <p className="mt-1 text-[11px] tracking-wide text-neutral-600">
                                         {profile.email}
@@ -365,18 +458,42 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                         DELETE ACCOUNT
                                     </button>
                                 ) : (
-                                    <div>
+                                    <deleteAccountFetcher.Form method="post">
+                                        <input
+                                            type="hidden"
+                                            name="intent"
+                                            value="delete-account"
+                                        />
                                         <p className="mb-3 text-[10px] tracking-[0.1em] text-red-400/70">
                                             {
                                                 "// are you sure? this is irreversible."
                                             }
                                         </p>
+                                        <div className="mb-4">
+                                            <InputField
+                                                label="CURRENT PASSWORD"
+                                                type="password"
+                                                value={deletePassword}
+                                                onChange={setDeletePassword}
+                                                placeholder="enter current password"
+                                                name="currentPassword"
+                                                inputClassName="border-red-400/20 focus:border-red-400/50"
+                                            />
+                                        </div>
+                                        {deleteAccountFetcher.data?.error && (
+                                            <p className="mb-4 text-[10px] tracking-[0.1em] text-red-400/80">
+                                                {`// ${deleteAccountFetcher.data.error}`}
+                                            </p>
+                                        )}
                                         <div className="flex items-center gap-3">
                                             <button
-                                                type="button"
+                                                type="submit"
+                                                disabled={!canSubmitDelete}
                                                 className="bg-red-400/80 px-5 py-2.5 text-[10px] font-bold tracking-[0.15em] text-black transition-colors hover:bg-red-400"
                                             >
-                                                CONFIRM DELETE
+                                                {deleteAccountFetcher.state === "submitting"
+                                                    ? "DELETING..."
+                                                    : "CONFIRM DELETE"}
                                             </button>
                                             <button
                                                 type="button"
@@ -388,19 +505,19 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                                 CANCEL
                                             </button>
                                         </div>
-                                    </div>
+                                    </deleteAccountFetcher.Form>
                                 )}
                             </div>
                         </Panel>
 
                         {/* Decorative text below panels */}
                         <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">
-                            {displayName.toUpperCase()} / {profile.rank} / LVL{" "}
+                            {profile.displayName.toUpperCase()} / {profile.rank} / LVL{" "}
                             {profile.level}
                         </p>
                     </div>
                 </div>
-            </div>
+            </div >
 
             <Footer label="PROFILE" />
         </main >
