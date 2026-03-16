@@ -4,30 +4,9 @@ import { Panel } from "~/components/panel";
 import { Footer } from "~/components/footer";
 import { InputField } from "~/components/input-field";
 import { useHoldRepeat } from "~/hooks/use-hold-repeat";
+import { GAME_MODES } from "~/models/gameModes";
+import type { GameMode, GameModeOption } from "~/models/gameModes";
 
-/* ─── Game Mode Definitions ─── */
-const GAME_MODES = [
-    {
-        id: "elimination" as const,
-        label: "ELIM",
-        description: "Players are eliminated each round until one remains.",
-        tag: "LAST ONE STANDING",
-    },
-    {
-        id: "points" as const,
-        label: "POINTS",
-        description: "Earn points for speed and accuracy across rounds.",
-        tag: "HIGHEST SCORE WINS",
-    },
-    {
-        id: "instant-fail" as const,
-        label: "INSTANT FAIL",
-        description: "One mistake and you're out.",
-        tag: "ZERO MARGIN",
-    },
-] as const;
-
-type GameMode = (typeof GAME_MODES)[number]["id"];
 type Difficulty = "easy" | "medium" | "hard";
 type Visibility = "private" | "public";
 
@@ -37,7 +16,7 @@ function ModeCard({
     selected,
     onSelect,
 }: {
-    mode: (typeof GAME_MODES)[number];
+    mode: GameModeOption;
     selected: boolean;
     onSelect: () => void;
 }) {
