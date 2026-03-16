@@ -185,6 +185,44 @@ async function updatePassword(
     return redirectToLoginWithClearedCookie();
 }
 
+/** Deletes the authenticated user's account after verifying their password. */
+async function deleteAccount(
+    formData: FormData,
+    session: NonNullable<Awaited<ReturnType<typeof getAuthenticatedSession>>>,
+) {
+    const currentPasswordEntry = formData.get("currentPassword");
+
+    if (typeof currentPasswordEntry !== "string") {
+        return { error: "Invalid input" };
+    }
+
+    const currentPassword = currentPasswordEntry.trim();
+
+    if (!currentPassword) {
+        return { error: "Current password is required" };
+    }
+
+    const user = await convex.query(api.users.getUser, {
+        id: session.userId,
+    });
+
+    const passwordCorrect = await bcrypt.compare(currentPassword, user.password);
+
+    if (!passwordCorrect) {
+        return { error: "Current password is incorrect" };
+    }
+
+    await convex.mutation(api.sessions.deleteSessionsByUser, {
+        userId: session.userId,
+    });
+
+    await convex.mutation(api.users.deleteUser, {
+        id: session.userId,
+    });
+
+    return redirectToLoginWithClearedCookie();
+}
+
 export async function action({ request }: ActionFunctionArgs) {
     const session = await getAuthenticatedSession(request);
 
@@ -211,6 +249,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
         case "update-password": {
             return updatePassword(formData, session);
+        }
+
+        case "delete-account": {
+            return deleteAccount(formData, session);
         }
 
         default:

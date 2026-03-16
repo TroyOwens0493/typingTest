@@ -64,6 +64,11 @@ export function Profile({ profile }: { profile: ProfileData }) {
         error?: string;
     }>();
 
+    const deleteAccountFetcher = useFetcher<{
+        error?: string;
+    }>();
+    const [deletePassword, setDeletePassword] = useState("");
+
     /* Delete confirmation state */
     const [deleteConfirm, setDeleteConfirm] = useState(false);
 
@@ -122,6 +127,9 @@ export function Profile({ profile }: { profile: ProfileData }) {
         newPassword.length >= 8 &&
         passwordsMatch &&
         passwordFetcher.state === "idle";
+    const canSubmitDelete =
+        deletePassword.trim().length > 0 &&
+        deleteAccountFetcher.state === "idle";
 
     const memberDate = new Date(profile.memberSince).toLocaleDateString(
         "en-US",
@@ -450,18 +458,42 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                         DELETE ACCOUNT
                                     </button>
                                 ) : (
-                                    <div>
+                                    <deleteAccountFetcher.Form method="post">
+                                        <input
+                                            type="hidden"
+                                            name="intent"
+                                            value="delete-account"
+                                        />
                                         <p className="mb-3 text-[10px] tracking-[0.1em] text-red-400/70">
                                             {
                                                 "// are you sure? this is irreversible."
                                             }
                                         </p>
+                                        <div className="mb-4">
+                                            <InputField
+                                                label="CURRENT PASSWORD"
+                                                type="password"
+                                                value={deletePassword}
+                                                onChange={setDeletePassword}
+                                                placeholder="enter current password"
+                                                name="currentPassword"
+                                                inputClassName="border-red-400/20 focus:border-red-400/50"
+                                            />
+                                        </div>
+                                        {deleteAccountFetcher.data?.error && (
+                                            <p className="mb-4 text-[10px] tracking-[0.1em] text-red-400/80">
+                                                {`// ${deleteAccountFetcher.data.error}`}
+                                            </p>
+                                        )}
                                         <div className="flex items-center gap-3">
                                             <button
-                                                type="button"
+                                                type="submit"
+                                                disabled={!canSubmitDelete}
                                                 className="bg-red-400/80 px-5 py-2.5 text-[10px] font-bold tracking-[0.15em] text-black transition-colors hover:bg-red-400"
                                             >
-                                                CONFIRM DELETE
+                                                {deleteAccountFetcher.state === "submitting"
+                                                    ? "DELETING..."
+                                                    : "CONFIRM DELETE"}
                                             </button>
                                             <button
                                                 type="button"
@@ -473,7 +505,7 @@ export function Profile({ profile }: { profile: ProfileData }) {
                                                 CANCEL
                                             </button>
                                         </div>
-                                    </div>
+                                    </deleteAccountFetcher.Form>
                                 )}
                             </div>
                         </Panel>

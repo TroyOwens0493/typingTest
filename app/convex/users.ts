@@ -126,3 +126,19 @@ export const updatePassword = mutation({
         });
     },
 });
+
+export const deleteUser = mutation({
+    args: {
+        id: v.id("user"),
+    },
+
+    handler: async (ctx, args) => {
+        const user = await ctx.db.get(args.id);
+
+        if (!user) {
+            throw new Error("User doesn't exist");
+        }
+
+        await ctx.db.delete(args.id);
+    },
+});
