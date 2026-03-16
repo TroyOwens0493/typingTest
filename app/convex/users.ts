@@ -107,3 +107,22 @@ export const updateUsername = mutation({
         });
     },
 });
+
+export const updatePassword = mutation({
+    args: {
+        id: v.id("user"),
+        password: v.string(),
+    },
+
+    handler: async (ctx, args) => {
+        const user = await ctx.db.get(args.id);
+
+        if (!user) {
+            throw new Error("User doesn't exist");
+        }
+
+        await ctx.db.patch(args.id, {
+            password: args.password,
+        });
+    },
+});

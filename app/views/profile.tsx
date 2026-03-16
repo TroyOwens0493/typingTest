@@ -59,6 +59,10 @@ export function Profile({ profile }: { profile: ProfileData }) {
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const passwordFetcher = useFetcher<{
+        ok?: boolean;
+        error?: string;
+    }>();
 
     /* Delete confirmation state */
     const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -103,6 +107,7 @@ export function Profile({ profile }: { profile: ProfileData }) {
         });
     }, [nameValidationFetcher]);
 
+    // Debounce input
     useEffect(() => {
         const timer = setTimeout(() => {
             validateNameInput(nameInput);
@@ -110,19 +115,13 @@ export function Profile({ profile }: { profile: ProfileData }) {
         return () => clearTimeout(timer);
     }, [nameInput, validateNameInput]);
 
-    function handlePasswordSubmit() {
-        // TODO: wire up to API
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-    }
-
     const passwordsMatch =
         newPassword.length > 0 && newPassword === confirmPassword;
     const canSubmitPassword =
         currentPassword.length > 0 &&
         newPassword.length >= 8 &&
-        passwordsMatch;
+        passwordsMatch &&
+        passwordFetcher.state === "idle";
 
     const memberDate = new Date(profile.memberSince).toLocaleDateString(
         "en-US",
@@ -294,59 +293,82 @@ export function Profile({ profile }: { profile: ProfileData }) {
                             </p>
 
                             <Panel label="CHANGE PASSWORD">
-                                <div className="space-y-5 px-5 py-5">
-                                    <InputField
-                                        label="CURRENT PASSWORD"
-                                        type="password"
-                                        value={currentPassword}
-                                        onChange={setCurrentPassword}
-                                        placeholder="••••••••••••"
+                                <passwordFetcher.Form method="post">
+                                    <input
+                                        type="hidden"
+                                        name="intent"
+                                        value="update-password"
                                     />
-                                    <InputField
-                                        label="NEW PASSWORD"
-                                        type="password"
-                                        value={newPassword}
-                                        onChange={setNewPassword}
-                                        placeholder="minimum 8 characters"
-                                    />
-                                    <InputField
-                                        label="CONFIRM NEW PASSWORD"
-                                        type="password"
-                                        value={confirmPassword}
-                                        onChange={setConfirmPassword}
-                                        placeholder="re-enter new password"
-                                    />
+                                    <div className="space-y-5 px-5 py-5">
+                                        <InputField
+                                            label="CURRENT PASSWORD"
+                                            type="password"
+                                            value={currentPassword}
+                                            onChange={setCurrentPassword}
+                                            placeholder="••••••••••••"
+                                            name="currentPassword"
+                                        />
+                                        <InputField
+                                            label="NEW PASSWORD"
+                                            type="password"
+                                            value={newPassword}
+                                            onChange={setNewPassword}
+                                            placeholder="minimum 8 characters"
+                                            name="newPassword"
+                                        />
+                                        <InputField
+                                            label="CONFIRM NEW PASSWORD"
+                                            type="password"
+                                            value={confirmPassword}
+                                            onChange={setConfirmPassword}
+                                            placeholder="re-enter new password"
+                                            name="confirmPassword"
+                                        />
 
-                                    {/* Password match indicator */}
-                                    {confirmPassword.length > 0 && (
-                                        <p
-                                            className={`text-[10px] tracking-[0.15em] ${passwordsMatch
-                                                ? "text-lime/70"
-                                                : "text-red-400/80"
-                                                }`}
-                                        >
-                                            {passwordsMatch
-                                                ? "// passwords match"
-                                                : "// passwords do not match"}
-                                        </p>
-                                    )}
+                                        {newPassword.length > 0 && newPassword.length < 8 && (
+                                            <p className="text-[10px] tracking-[0.15em] text-red-400/80">
+                                                {"// password must be at least 8 characters"}
+                                            </p>
+                                        )}
 
-                                    <div className="pt-1">
-                                        <button
-                                            type="button"
-                                            onClick={handlePasswordSubmit}
-                                            disabled={!canSubmitPassword}
-                                            className="bg-lime px-6 py-3 text-[10px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d] disabled:cursor-not-allowed disabled:opacity-30"
-                                        >
-                                            UPDATE PASSWORD
-                                        </button>
-                                        <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
-                                            {
-                                                "// you will need to sign in again after changing your password"
-                                            }
-                                        </p>
+                                        {/* Password match indicator */}
+                                        {confirmPassword.length > 0 && (
+                                            <p
+                                                className={`text-[10px] tracking-[0.15em] ${passwordsMatch
+                                                    ? "text-lime/70"
+                                                    : "text-red-400/80"
+                                                    }`}
+                                            >
+                                                {passwordsMatch
+                                                    ? "// passwords match"
+                                                    : "// passwords do not match"}
+                                            </p>
+                                        )}
+
+                                        {passwordFetcher.data?.error && (
+                                            <p className="text-[10px] tracking-[0.15em] text-red-400/80">
+                                                {`// ${passwordFetcher.data.error}`}
+                                            </p>
+                                        )}
+
+                                        <div className="pt-1">
+                                            <button
+                                                type="submit"
+                                                disabled={!canSubmitPassword}
+                                                className="bg-lime px-6 py-3 text-[10px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d] disabled:cursor-not-allowed disabled:opacity-30"
+                                            >
+                                                {passwordFetcher.state === "submitting"
+                                                    ? "UPDATING..."
+                                                    : "UPDATE PASSWORD"}
+                                            </button>
+                                            <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-800">
+                                                {
+                                                    "// you will need to sign in again after changing your password"
+                                                }
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
+                                </passwordFetcher.Form>
                             </Panel>
                         </section>
 

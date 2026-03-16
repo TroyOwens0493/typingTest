@@ -5,6 +5,7 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "../convex/_generated/api";
 import crypto from "node:crypto";
 import { getAuthenticatedSession, getCookieValue } from "./authenticate";
+import bcrypt from "bcryptjs";
 
 const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -43,6 +44,11 @@ async function logout(
         });
     }
 
+    return redirectToLoginWithClearedCookie();
+}
+
+/** Clears the active session cookie and redirects to login. */
+function redirectToLoginWithClearedCookie() {
     const isProduction = process.env.NODE_ENV === "production";
     const clearCookie = [
         "session=",
@@ -55,6 +61,7 @@ async function logout(
     ]
         .filter(Boolean)
         .join("; ");
+
     return redirect("/login", {
         headers: {
             "Set-Cookie": clearCookie,
@@ -101,7 +108,7 @@ async function validateUsername(
         return "You cannot have an empty username";
     }
 
-    const existingUser = await convex.query((api as any).users.getUserByUsername, {
+    const existingUser = await convex.query(api.users.getUserByUsername, {
         username,
     });
 
@@ -115,6 +122,67 @@ async function validateUsername(
 
 
     return "";
+}
+
+/** Updates the authenticated user's password after verifying the current password. */
+async function updatePassword(
+    formData: FormData,
+    session: NonNullable<Awaited<ReturnType<typeof getAuthenticatedSession>>>,
+) {
+    const currentPasswordEntry = formData.get("currentPassword");
+    const newPasswordEntry = formData.get("newPassword");
+    const confirmPasswordEntry = formData.get("confirmPassword");
+
+    if (
+        typeof currentPasswordEntry !== "string" ||
+        typeof newPasswordEntry !== "string" ||
+        typeof confirmPasswordEntry !== "string"
+    ) {
+        return { error: "Invalid input" };
+    }
+
+    const currentPassword = currentPasswordEntry.trim();
+    const newPassword = newPasswordEntry.trim();
+    const confirmPassword = confirmPasswordEntry.trim();
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        return { error: "All password fields are required" };
+    }
+
+    if (newPassword.length < 8) {
+        return { error: "New password must be at least 8 characters" };
+    }
+
+    if (newPassword !== confirmPassword) {
+        return { error: "New passwords do not match" };
+    }
+
+    if (currentPassword === newPassword) {
+        return { error: "New password must be different from current password" };
+    }
+
+    const user = await convex.query(api.users.getUser, {
+        id: session.userId,
+    });
+
+    const passwordCorrect = await bcrypt.compare(currentPassword, user.password);
+
+    if (!passwordCorrect) {
+        return { error: "Current password is incorrect" };
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await convex.mutation(api.users.updatePassword, {
+        id: session.userId,
+        password: passwordHash,
+    });
+
+    await convex.mutation(api.sessions.deleteSessionsByUser, {
+        userId: session.userId,
+    });
+
+    return redirectToLoginWithClearedCookie();
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -139,6 +207,10 @@ export async function action({ request }: ActionFunctionArgs) {
         case "validate-username": {
             const usernameEntry = formData.get("username");
             return validateUsername(usernameEntry, session);
+        }
+
+        case "update-password": {
+            return updatePassword(formData, session);
         }
 
         default:
