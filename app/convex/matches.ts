@@ -45,6 +45,7 @@ export const createMatch = mutation({
             maxPlayers: args.maxPlayers,
             difficulty: args.difficulty,
             visibility: args.visibility,
+            words: [],
         });
 
         return {
