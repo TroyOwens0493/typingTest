@@ -1,9 +1,12 @@
 import { Create } from "../views/create";
-import type { LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { authenticate } from "./authenticate";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     return authenticate(request);
+}
+
+export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function Page() {

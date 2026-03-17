@@ -23,12 +23,13 @@ export default defineSchema({
         }),
     }).index("by_email", ["email"]),
     match: defineTable({
+        ownerId: v.id("user"),
         code: v.string(),
         gamemode: v.string(),
         maxPlayers: v.number(),
         difficulty: v.string(),
         visibility: v.string(),
-    }),
+    }).index("by_code", ["code"]),
     sessions: defineTable({
         userId: v.id("user"),
         tokenHash: v.string(),
