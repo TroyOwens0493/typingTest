@@ -5,7 +5,8 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { api } from "../convex/_generated/api";
 import { Create } from "../views/create";
 import { authenticate, getAuthenticatedSession } from "./authenticate";
-import { WORD_BANKS } from "~/models/wordbanks";
+import { getTypingWords } from "~/models/gameHelpers";
+import type { Difficulties } from "~/models/typingTypes";
 
 const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -51,12 +52,6 @@ function parseCreateMatchForm(formData: FormData) {
     };
 }
 
-function chooseWords(
-    difficulty: "easy" | "medium" | "hard"
-) {
-    const bank = WORD_BANKS[difficulty];
-}
-
 export async function loader({ request }: LoaderFunctionArgs) {
     return authenticate(request);
 }
@@ -83,7 +78,7 @@ export async function action({ request }: ActionFunctionArgs) {
             maxPlayers: parsedForm.maxPlayers,
             difficulty: parsedForm.difficulty,
             visibility: parsedForm.visibility,
-            words: chooseWords(parsedForm.difficulty),
+            words: getTypingWords(parsedForm.difficulty as Difficulties),
         });
 
         return redirect(`/play/${match.matchId}`);

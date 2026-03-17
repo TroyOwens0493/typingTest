@@ -5,6 +5,7 @@ import { WORD_BANKS } from "./wordbanks";
 const ACTIVE_WORD_OBJ = { text: "", state: "active", typed: "" } as TypingWord;
 const WORD_OBJ = { text: "", state: "pending", typed: "" } as TypingWord;
 
+/** Calculates the percentage of correctly completed words. */
 export function calculateAccuracy({
     words,
 }: {
@@ -22,6 +23,7 @@ export function calculateAccuracy({
     }
 }
 
+/** Calculates words per minute from correct words and elapsed time. */
 export function calculateWpm({
     words,
     timeInSeconds,
@@ -39,6 +41,7 @@ export function calculateWpm({
     }
 }
 
+/** Converts a list of raw words into tracked typing word objects. */
 function buildTypingWordsArr(
     shuffledWords: string[],
 ) {
@@ -56,21 +59,26 @@ function buildTypingWordsArr(
     return next;
 }
 
+/** Returns the word bank for the requested difficulty. */
 function chooseWords(
     difficulty: Difficulties
 ) {
-    return WORD_BANKS[difficulty];
+    return WORD_BANKS[difficulty] as readonly string[];
 }
 
-function shuffle(arr: string[]) {
-    for (let i = arr.length - 1; i > 0; i--) {
+/** Returns a shuffled copy of the provided word list. */
+function shuffle(words: readonly string[]) {
+    const shuffledWords = [...words];
+
+    for (let i = shuffledWords.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1))
-            ;[arr[i], arr[j]] = [arr[j], arr[i]]
+            ;[shuffledWords[i], shuffledWords[j]] = [shuffledWords[j], shuffledWords[i]]
     }
 
-    return arr;
+    return shuffledWords;
 }
 
+/** Builds the randomized typing queue for a game round. */
 export function getTypingWords(
     difficulty: Difficulties
 ) {
