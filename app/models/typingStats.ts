@@ -1,4 +1,9 @@
-import type { TypingWord } from "~/models/typingTypes";
+import type { TypingWord, Difficulties } from "~/models/typingTypes";
+import { WORD_BANKS } from "./wordbanks";
+
+
+const ACTIVE_WORD_OBJ = { text: "", state: "active", typed: "" } as TypingWord;
+const WORD_OBJ = { text: "", state: "pending", typed: "" } as TypingWord;
 
 export function calculateAccuracy({
     words,
@@ -32,4 +37,44 @@ export function calculateWpm({
     } else {
         return res;
     }
+}
+
+function buildTypingWordsArr(
+    shuffledWords: string[],
+) {
+    let next: TypingWord[] = [];
+    for (let i = 0; i < shuffledWords.length; i++) {
+        if (i === 0) {
+            const wordObj = ACTIVE_WORD_OBJ;
+            next.push({ ...wordObj, text: shuffledWords[i] });
+        } else {
+            const wordObj = WORD_OBJ;
+            next.push({ ...wordObj, text: shuffledWords[i] });
+        }
+    }
+
+    return next;
+}
+
+function chooseWords(
+    difficulty: Difficulties
+) {
+    return WORD_BANKS[difficulty];
+}
+
+function shuffle(arr: string[]) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+            ;[arr[i], arr[j]] = [arr[j], arr[i]]
+    }
+
+    return arr;
+}
+
+export function getTypingWords(
+    difficulty: Difficulties
+) {
+    const rawWords = chooseWords(difficulty);
+    const shuffled = shuffle(rawWords);
+    return buildTypingWordsArr(shuffled);
 }

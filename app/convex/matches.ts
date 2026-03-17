@@ -21,6 +21,16 @@ export const createMatch = mutation({
         maxPlayers: v.number(),
         difficulty: v.string(),
         visibility: v.string(),
+        words: v.array(
+            v.object({
+                text: v.string(),
+                state: v.union(v.literal("pending"), v.literal("active")),
+                status: v.optional(
+                    v.union(v.literal("correct"), v.literal("incorrect")),
+                ),
+                typed: v.optional(v.string()),
+            }),
+        ),
     },
 
     handler: async (ctx, args) => {
@@ -45,7 +55,7 @@ export const createMatch = mutation({
             maxPlayers: args.maxPlayers,
             difficulty: args.difficulty,
             visibility: args.visibility,
-            words: [],
+            words: args.words,
         });
 
         return {

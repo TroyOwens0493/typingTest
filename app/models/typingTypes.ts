@@ -4,3 +4,5 @@ export type TypingWord = {
     status?: "correct" | "incorrect";
     typed?: string;
 };
+
+export type Difficulties = "easy" | "medium" | "hard";
