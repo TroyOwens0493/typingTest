@@ -1,35 +1,26 @@
 import { useState } from "react";
+import { Form } from "react-router";
 import { Nav } from "~/components/nav";
 import { Panel } from "~/components/panel";
 import { Footer } from "~/components/footer";
 import { InputField } from "~/components/input-field";
 import { useHoldRepeat } from "~/hooks/use-hold-repeat";
+import { GAME_MODES } from "~/models/gameModes";
+import type { GameMode, GameModeOption } from "~/models/gameModes";
 
-/* ─── Game Mode Definitions ─── */
-const GAME_MODES = [
-    {
-        id: "elimination" as const,
-        label: "ELIM",
-        description: "Players are eliminated each round until one remains.",
-        tag: "LAST ONE STANDING",
-    },
-    {
-        id: "points" as const,
-        label: "POINTS",
-        description: "Earn points for speed and accuracy across rounds.",
-        tag: "HIGHEST SCORE WINS",
-    },
-    {
-        id: "instant-fail" as const,
-        label: "INSTANT FAIL",
-        description: "One mistake and you're out.",
-        tag: "ZERO MARGIN",
-    },
-] as const;
-
-type GameMode = (typeof GAME_MODES)[number]["id"];
 type Difficulty = "easy" | "medium" | "hard";
 type Visibility = "private" | "public";
+
+type CreateProps = {
+    actionData?: {
+        error?: string;
+    };
+};
+
+/** Clamps a player count to the supported create-match bounds. */
+function clampPlayerCount(value: number) {
+    return Math.max(2, Math.min(50, value));
+}
 
 /* ─── Mode Card ─── */
 function ModeCard({
@@ -37,7 +28,7 @@ function ModeCard({
     selected,
     onSelect,
 }: {
-    mode: (typeof GAME_MODES)[number];
+    mode: GameModeOption;
     selected: boolean;
     onSelect: () => void;
 }) {
@@ -132,10 +123,6 @@ function PlayerStepper({
     const [isEditing, setIsEditing] = useState(false);
     const [inputValue, setInputValue] = useState("");
 
-    function clamp(n: number) {
-        return Math.max(min, Math.min(max, n));
-    }
-
     function startEdit() {
         setInputValue(String(value));
         setIsEditing(true);
@@ -144,7 +131,7 @@ function PlayerStepper({
     function commitEdit() {
         const parsed = parseInt(inputValue, 10);
         if (!isNaN(parsed)) {
-            onChange(clamp(parsed));
+            onChange(clampPlayerCount(parsed));
         }
         setIsEditing(false);
     }
@@ -157,8 +144,8 @@ function PlayerStepper({
         }
     }
 
-    const decrementHold = useHoldRepeat(() => onChange(clamp(value - 1)));
-    const incrementHold = useHoldRepeat(() => onChange(clamp(value + 1)));
+    const decrementHold = useHoldRepeat(() => onChange(clampPlayerCount(value - 1)));
+    const incrementHold = useHoldRepeat(() => onChange(clampPlayerCount(value + 1)));
 
     return (
         <div>
@@ -259,7 +246,8 @@ function PlayerStepper({
 /* ═══════════════════════════════════════════════════════
    CREATE MATCH VIEW
    ═══════════════════════════════════════════════════════ */
-export function Create() {
+/** Renders the create-match form and submits the selected configuration. */
+export function Create({ actionData }: CreateProps) {
     const [gameMode, setGameMode] = useState<GameMode>("elimination");
     const [playerCount, setPlayerCount] = useState(8);
     const [difficulty, setDifficulty] = useState<Difficulty>("medium");
@@ -282,172 +270,185 @@ export function Create() {
             <Nav />
 
             {/* ─── Content ─── */}
-            <div className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-6 pb-16 pt-10 lg:px-12 lg:pt-16">
-                {/* Page header */}
-                <div className="mb-12">
-                    <p className="mb-4 text-[11px] tracking-[0.3em] text-lime">
-                        &gt; CREATE MATCH
-                        <span className="animate-blink">_</span>
-                    </p>
+            <Form method="post" className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-6 pb-16 pt-10 lg:px-12 lg:pt-16">
+                <input type="hidden" name="gamemode" value={gameMode} />
+                <input type="hidden" name="maxPlayers" value={playerCount} />
+                <input type="hidden" name="difficulty" value={difficulty} />
+                <input type="hidden" name="visibility" value={visibility} />
 
-                    <h1 className="font-display text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1] tracking-tight text-white">
-                        New Arena
-                    </h1>
-                    <p className="mt-4 max-w-md text-sm leading-relaxed text-neutral-600">
-                        Configure your match and share the lobby code with
-                        friends.
-                    </p>
-                </div>
+                <div>
+                    {/* Page header */}
+                    <div className="mb-12">
+                        <p className="mb-4 text-[11px] tracking-[0.3em] text-lime">
+                            &gt; CREATE MATCH
+                            <span className="animate-blink">_</span>
+                        </p>
 
-                {/* ─── Two-column layout ─── */}
-                <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12">
-                    {/* ──── Left: Configuration Form ──── */}
-                    <div className="space-y-12">
-                        {/* Game Mode */}
-                        <section>
-                            <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
-                                GAME MODE
+                        <h1 className="font-display text-[clamp(2rem,5vw,3.5rem)] font-bold leading-[1] tracking-tight text-white">
+                            New Arena
+                        </h1>
+                        <p className="mt-4 max-w-md text-sm leading-relaxed text-neutral-600">
+                            Configure your match and share the lobby code with
+                            friends.
+                        </p>
+
+                        {actionData?.error ? (
+                            <p className="mt-4 text-[10px] tracking-[0.15em] text-red-400">
+                                {`// ${actionData.error}`}
                             </p>
-                            <div className="grid gap-3 sm:grid-cols-3">
-                                {GAME_MODES.map((mode) => (
-                                    <ModeCard
-                                        key={mode.id}
-                                        mode={mode}
-                                        selected={gameMode === mode.id}
-                                        onSelect={() => setGameMode(mode.id)}
-                                    />
-                                ))}
+                        ) : null}
+                    </div>
+
+                    {/* ─── Two-column layout ─── */}
+                    <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12">
+                        {/* ──── Left: Configuration Form ──── */}
+                        <div className="space-y-12">
+                            {/* Game Mode */}
+                            <section>
+                                <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
+                                    GAME MODE
+                                </p>
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                    {GAME_MODES.map((mode) => (
+                                        <ModeCard
+                                            key={mode.id}
+                                            mode={mode}
+                                            selected={gameMode === mode.id}
+                                            onSelect={() => setGameMode(mode.id)}
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+
+                            {/* Player Count */}
+                            <section>
+                                <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
+                                    PLAYER COUNT
+                                </p>
+                                <PlayerStepper
+                                    value={playerCount}
+                                    onChange={setPlayerCount}
+                                />
+                            </section>
+
+                            {/* Text Difficulty */}
+                            <section>
+                                <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
+                                    TEXT DIFFICULTY
+                                </p>
+                                <ToggleGroup
+                                    options={[
+                                        { id: "easy" as Difficulty, label: "EASY" },
+                                        {
+                                            id: "medium" as Difficulty,
+                                            label: "MEDIUM",
+                                        },
+                                        { id: "hard" as Difficulty, label: "HARD" },
+                                    ]}
+                                    value={difficulty}
+                                    onChange={setDifficulty}
+                                />
+                                <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-700">
+                                    {difficulty === "easy" &&
+                                        "// common words, shorter sentences"}
+                                    {difficulty === "medium" &&
+                                        "// mixed vocabulary, standard length"}
+                                    {difficulty === "hard" &&
+                                        "// complex words, punctuation heavy"}
+                                </p>
+                            </section>
+
+                            {/* Lobby Visibility */}
+                            <section>
+                                <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
+                                    LOBBY VISIBILITY
+                                </p>
+                                <ToggleGroup
+                                    options={[
+                                        {
+                                            id: "private" as Visibility,
+                                            label: "\u25CB  PRIVATE",
+                                        },
+                                        {
+                                            id: "public" as Visibility,
+                                            label: "\u25CB  PUBLIC",
+                                        },
+                                    ]}
+                                    value={visibility}
+                                    onChange={setVisibility}
+                                />
+                                <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-700">
+                                    {visibility === "private"
+                                        ? "// invite only \u2014 share the lobby code"
+                                        : "// anyone can find and join this match"}
+                                </p>
+                            </section>
+
+                            {/* Create button */}
+                            <div className="pt-2">
+                                <button
+                                    type="submit"
+                                    className="w-full bg-lime px-8 py-4 text-[11px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d] sm:w-auto"
+                                >
+                                    CREATE MATCH
+                                </button>
+                                <p className="mt-3 text-[10px] tracking-[0.15em] text-neutral-800">
+                                    {"// a lobby code will be generated for you"}
+                                </p>
                             </div>
-                        </section>
+                        </div>
 
-                        {/* Player Count */}
-                        <section>
-                            <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
-                                PLAYER COUNT
-                            </p>
-                            <PlayerStepper
-                                value={playerCount}
-                                onChange={setPlayerCount}
-                            />
-                        </section>
-
-                        {/* Text Difficulty */}
-                        <section>
-                            <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
-                                TEXT DIFFICULTY
-                            </p>
-                            <ToggleGroup
-                                options={[
-                                    { id: "easy" as Difficulty, label: "EASY" },
-                                    {
-                                        id: "medium" as Difficulty,
-                                        label: "MEDIUM",
-                                    },
-                                    { id: "hard" as Difficulty, label: "HARD" },
-                                ]}
-                                value={difficulty}
-                                onChange={setDifficulty}
-                            />
-                            <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-700">
-                                {difficulty === "easy" &&
-                                    "// common words, shorter sentences"}
-                                {difficulty === "medium" &&
-                                    "// mixed vocabulary, standard length"}
-                                {difficulty === "hard" &&
-                                    "// complex words, punctuation heavy"}
-                            </p>
-                        </section>
-
-                        {/* Lobby Visibility */}
-                        <section>
-                            <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
-                                LOBBY VISIBILITY
-                            </p>
-                            <ToggleGroup
-                                options={[
-                                    {
-                                        id: "private" as Visibility,
-                                        label: "\u25CB  PRIVATE",
-                                    },
-                                    {
-                                        id: "public" as Visibility,
-                                        label: "\u25CB  PUBLIC",
-                                    },
-                                ]}
-                                value={visibility}
-                                onChange={setVisibility}
-                            />
-                            <p className="mt-3 text-[10px] tracking-[0.1em] text-neutral-700">
-                                {visibility === "private"
-                                    ? "// invite only \u2014 share the lobby code"
-                                    : "// anyone can find and join this match"}
-                            </p>
-                        </section>
-
-                        {/* Create button */}
-                        <div className="pt-2">
-                            <button
-                                type="button"
-                                className="w-full bg-lime px-8 py-4 text-[11px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d] sm:w-auto"
+                        {/* ──── Right: Match Config Summary Panel ──── */}
+                        <div className="self-start lg:sticky lg:top-8">
+                            <Panel
+                                label="MATCH CONFIG"
+                                headerRight={
+                                    <span className="text-[10px] tracking-[0.2em] text-neutral-700">
+                                        PREVIEW
+                                    </span>
+                                }
                             >
-                                CREATE MATCH
-                            </button>
-                            <p className="mt-3 text-[10px] tracking-[0.15em] text-neutral-800">
-                                {"// a lobby code will be generated for you"}
+                                <Panel.Rows>
+                                    <Panel.Row
+                                        label="MODE"
+                                        value={selectedMode.label}
+                                        accent
+                                    />
+                                    <Panel.Row
+                                        label="MAX PLAYERS"
+                                        value={`${playerCount} players`}
+                                        accent
+                                    />
+                                    <Panel.Row
+                                        label="DIFFICULTY"
+                                        value={
+                                            difficulty.charAt(0).toUpperCase() +
+                                            difficulty.slice(1)
+                                        }
+                                    />
+                                    <Panel.Row
+                                        label="VISIBILITY"
+                                        value={
+                                            visibility === "private"
+                                                ? "Private \u2014 Invite Only"
+                                                : "Public \u2014 Open Lobby"
+                                        }
+                                    />
+                                </Panel.Rows>
+                            </Panel>
+
+                            {/* Decorative text below panel */}
+                            <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">
+                                {selectedMode.tag} / {playerCount} MAX /{" "}
+                                {difficulty.toUpperCase()} /{" "}
+                                {visibility.toUpperCase()}
                             </p>
                         </div>
                     </div>
-
-                    {/* ──── Right: Match Config Summary Panel ──── */}
-                    <div className="self-start lg:sticky lg:top-8">
-                        <Panel
-                            label="MATCH CONFIG"
-                            headerRight={
-                                <span className="text-[10px] tracking-[0.2em] text-neutral-700">
-                                    PREVIEW
-                                </span>
-                            }
-                        >
-                            <Panel.Rows>
-                                <Panel.Row
-                                    label="MODE"
-                                    value={selectedMode.label}
-                                    accent
-                                />
-                                <Panel.Row
-                                    label="MAX PLAYERS"
-                                    value={`${playerCount} players`}
-                                    accent
-                                />
-                                <Panel.Row
-                                    label="DIFFICULTY"
-                                    value={
-                                        difficulty.charAt(0).toUpperCase() +
-                                        difficulty.slice(1)
-                                    }
-                                />
-                                <Panel.Row
-                                    label="VISIBILITY"
-                                    value={
-                                        visibility === "private"
-                                            ? "Private \u2014 Invite Only"
-                                            : "Public \u2014 Open Lobby"
-                                    }
-                                />
-                            </Panel.Rows>
-                        </Panel>
-
-                        {/* Decorative text below panel */}
-                        <p className="mt-4 text-[9px] tracking-[0.2em] text-neutral-800">
-                            {selectedMode.tag} / {playerCount} MAX /{" "}
-                            {difficulty.toUpperCase()} /{" "}
-                            {visibility.toUpperCase()}
-                        </p>
-                    </div>
                 </div>
-            </div>
+            </Form>
 
             <Footer label="CREATE" />
-        </main>
+        </main >
     );
 }

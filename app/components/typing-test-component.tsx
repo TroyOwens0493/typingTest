@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { calculateAccuracy, calculateWpm } from "~/models/typingStats";
+import { calculateAccuracy, calculateWpm } from "~/models/gameHelpers";
 import type { TypingWord } from "~/models/typingTypes";
 
 // Renders the active word with a blinking cursor and per-character styling.
