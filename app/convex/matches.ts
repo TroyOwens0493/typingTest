@@ -1,9 +1,17 @@
 import { v } from "convex/values";
 
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 
 const MATCH_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const MATCH_CODE_LENGTH = 6;
+
+/** Fetches a match by its ID. */
+export const getMatch = query({
+    args: { matchId: v.id("match") },
+    handler: async (ctx, args) => {
+        return await ctx.db.get(args.matchId);
+    },
+});
 
 /** Generates a random uppercase alphanumeric code for a match. */
 function generateMatchCode() {
