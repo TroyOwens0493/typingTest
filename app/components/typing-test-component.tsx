@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { calculateAccuracy, calculateWpm } from "~/models/gameHelpers";
 import type { TypingWord } from "~/models/typingTypes";
 
@@ -108,6 +108,32 @@ type TypingTestComponentProps = {
     words: TypingWord[];
 };
 
+const VISIBLE_LINE_COUNT = 5;
+
+/** Estimates how many words fit on each visible line for the typing viewport. */
+function getVisibleWordWindow(words: TypingWord[], activeIndex: number) {
+    const averageCharactersPerLine = 26;
+    const wordsPerLine = Math.max(
+        1,
+        Math.floor(
+            averageCharactersPerLine /
+                Math.max(
+                    1,
+                    words.reduce((total, word) => total + word.text.length, 0) /
+                        Math.max(words.length, 1),
+                ),
+        ),
+    );
+    const wordsPerPage = Math.max(1, wordsPerLine * VISIBLE_LINE_COUNT);
+    const windowStart = Math.floor(activeIndex / wordsPerPage) * wordsPerPage;
+    const windowEnd = Math.min(words.length, windowStart + wordsPerPage);
+
+    return {
+        start: windowStart,
+        end: windowEnd,
+    };
+}
+
 export function TypingTestComponent({ words }: TypingTestComponentProps) {
     // Tracks whether the typing surface is focused for input.
     const [isFocused, setIsFocused] = useState(true);
@@ -123,6 +149,27 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
     const [activeWords, setActiveWords] = useState(words);
     // Whether the typing test has been completed.
     const [isComplete, setIsComplete] = useState(false);
+
+    /** Derives the currently active word index from the rendered typing state. */
+    const activeWordIndex = useMemo(() => {
+        const foundIndex = activeWords.findIndex((word) => word.state === "active");
+
+        if (foundIndex >= 0) {
+            return foundIndex;
+        }
+
+        return Math.max(0, Math.min(wordsTyped - 1, activeWords.length - 1));
+    }, [activeWords, wordsTyped]);
+
+    /** Limits the rendered words to a five-line viewport around the active word. */
+    const visibleWords = useMemo(() => {
+        const { start, end } = getVisibleWordWindow(activeWords, activeWordIndex);
+
+        return activeWords.slice(start, end).map((word, index) => ({
+            word,
+            absoluteIndex: start + index,
+        }));
+    }, [activeWords, activeWordIndex]);
 
     const resetTypingState = useCallback(() => {
         setTyped("");
@@ -313,12 +360,12 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
                 )}
 
                 <div
-                    className={`flex flex-wrap gap-x-[0.65em] gap-y-3 text-[1.35rem] leading-relaxed transition-all duration-200 ${!isFocused ? "opacity-30" : ""
+                    className={`h-[calc(1.35rem*1.625*5)] overflow-hidden flex flex-wrap content-start gap-x-[0.65em] gap-y-3 text-[1.35rem] leading-relaxed transition-all duration-200 ${!isFocused ? "opacity-30" : ""
                         }`}
                 >
-                    {activeWords.map((word, i) => (
+                    {visibleWords.map(({ word, absoluteIndex }) => (
                         <Word
-                            key={`${word.text}-${i}`}
+                            key={`${word.text}-${absoluteIndex}`}
                             text={word.text}
                             state={word.state}
                             status={word.status}
