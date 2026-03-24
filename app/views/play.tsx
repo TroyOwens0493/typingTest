@@ -46,6 +46,7 @@ export function Play({
                     <TypingTestComponent
                         words={words}
                         unfocusedMessage={showLobby ? "WAIT FOR HOST TO START THE ROUND" : undefined}
+                        allowFocusChange={false}
                     />
                 </div>
 

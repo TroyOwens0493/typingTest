@@ -75,7 +75,7 @@ export function Practice() {
             <Nav />
 
             {/* Main content — vertically centered */}
-            <TypingTestComponent words={Words} />
+            <TypingTestComponent words={Words} allowFocusChange />
 
             <Footer label="PRACTICE" />
         </main>

@@ -107,6 +107,8 @@ function StatBlock({
 type TypingTestComponentProps = {
     words: TypingWord[];
     unfocusedMessage?: string;
+    /** When false, focus can only be changed by the unfocusedMessage prop, not by user interaction (click/Enter) */
+    allowFocusChange?: boolean;
 };
 
 const VISIBLE_LINE_COUNT = 5;
@@ -135,7 +137,7 @@ function getVisibleWordWindow(words: TypingWord[], activeIndex: number) {
     };
 }
 
-export function TypingTestComponent({ words, unfocusedMessage }: TypingTestComponentProps) {
+export function TypingTestComponent({ words, unfocusedMessage, allowFocusChange = true }: TypingTestComponentProps) {
     // Tracks whether the typing surface is focused for input.
     // If unfocusedMessage is provided, start unfocused.
     const [isFocused, setIsFocused] = useState(!unfocusedMessage);
@@ -185,7 +187,7 @@ export function TypingTestComponent({ words, unfocusedMessage }: TypingTestCompo
 
     // Handles key input, updates typed string, and starts timer on first character.
     const getSetWords = useCallback((eventValue: string) => {
-        if (eventValue === "Enter") {
+        if (eventValue === "Enter" && allowFocusChange) {
             resetTypingState();
             return;
         }
@@ -211,7 +213,7 @@ export function TypingTestComponent({ words, unfocusedMessage }: TypingTestCompo
             }
             return nextTyped;
         });
-    }, [isFocused, isComplete, startTime, resetTypingState]);
+    }, [isFocused, isComplete, startTime, resetTypingState, allowFocusChange]);
 
     // Recompute word states whenever typed input changes.
     useEffect(() => {
@@ -273,7 +275,7 @@ export function TypingTestComponent({ words, unfocusedMessage }: TypingTestCompo
     // Register global keydown handler for typing input.
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
-            if (e.key === "Enter") {
+            if (e.key === "Enter" && allowFocusChange) {
                 resetTypingState();
                 return;
             }
@@ -286,7 +288,7 @@ export function TypingTestComponent({ words, unfocusedMessage }: TypingTestCompo
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [getSetWords, isFocused, isComplete, resetTypingState]);
+    }, [getSetWords, isFocused, isComplete, resetTypingState, allowFocusChange]);
 
     // Start/stop the interval that updates elapsed time.
     useEffect(() => {
@@ -329,7 +331,7 @@ export function TypingTestComponent({ words, unfocusedMessage }: TypingTestCompo
                 type="button"
                 className="relative w-full max-w-3xl cursor-text text-left"
                 onClick={() => {
-                    if (!isComplete) setIsFocused(true);
+                    if (allowFocusChange && !isComplete) setIsFocused(true);
                 }}
             >
                 {!isFocused && (
@@ -387,35 +389,37 @@ export function TypingTestComponent({ words, unfocusedMessage }: TypingTestCompo
                     ))}
                 </div>
             </button>
-            <div className="mt-14 flex flex-col items-center gap-3">
-                <button
-                    type="button"
-                    className="group flex items-center gap-2 text-neutral-700 transition-colors hover:text-neutral-400"
-                    onClick={resetTypingState}
-                >
-                    <svg
-                        className="h-3.5 w-3.5 transition-transform group-hover:rotate-[-45deg]"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
+            {allowFocusChange && (
+                <div className="mt-14 flex flex-col items-center gap-3">
+                    <button
+                        type="button"
+                        className="group flex items-center gap-2 text-neutral-700 transition-colors hover:text-neutral-400"
+                        onClick={resetTypingState}
                     >
-                        <path d="M21 2v6h-6" />
-                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-                        <path d="M3 22v-6h6" />
-                        <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-                    </svg>
-                    <span className="text-[10px] tracking-[0.3em]">
-                        RESTART
+                        <svg
+                            className="h-3.5 w-3.5 transition-transform group-hover:rotate-[-45deg]"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                        >
+                            <path d="M21 2v6h-6" />
+                            <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                            <path d="M3 22v-6h6" />
+                            <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                        </svg>
+                        <span className="text-[10px] tracking-[0.3em]">
+                            RESTART
+                        </span>
+                    </button>
+                    <span className="text-[9px] tracking-[0.2em] text-neutral-800">
+                        ENTER
                     </span>
-                </button>
-                <span className="text-[9px] tracking-[0.2em] text-neutral-800">
-                    ENTER
-                </span>
-            </div>
+                </div>
+            )}
         </div>
     );
 }
