@@ -43,7 +43,10 @@ export function Play({
             <div className="relative z-10 flex flex-1">
                 {/* Main game area */}
                 <div className="flex-1">
-                    <TypingTestComponent words={words} />
+                    <TypingTestComponent
+                        words={words}
+                        unfocusedMessage={showLobby ? "WAIT FOR HOST TO START THE ROUND" : undefined}
+                    />
                 </div>
 
                 {/* Lobby panel - shown when waiting */}

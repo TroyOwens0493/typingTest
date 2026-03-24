@@ -106,6 +106,7 @@ function StatBlock({
 
 type TypingTestComponentProps = {
     words: TypingWord[];
+    unfocusedMessage?: string;
 };
 
 const VISIBLE_LINE_COUNT = 5;
@@ -134,9 +135,10 @@ function getVisibleWordWindow(words: TypingWord[], activeIndex: number) {
     };
 }
 
-export function TypingTestComponent({ words }: TypingTestComponentProps) {
+export function TypingTestComponent({ words, unfocusedMessage }: TypingTestComponentProps) {
     // Tracks whether the typing surface is focused for input.
-    const [isFocused, setIsFocused] = useState(true);
+    // If unfocusedMessage is provided, start unfocused.
+    const [isFocused, setIsFocused] = useState(!unfocusedMessage);
     // Stores the full raw typed string (including spaces).
     const [typed, setTyped] = useState("");
     // Timestamp (ms) when typing starts; 0 means not started yet.
@@ -332,30 +334,41 @@ export function TypingTestComponent({ words }: TypingTestComponentProps) {
             >
                 {!isFocused && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[3px]">
-                        <button
-                            type="button"
-                            className="group flex items-center gap-2 text-neutral-700 transition-colors hover:text-neutral-400"
-                            onClick={resetTypingState}
-                        >
-                            <svg
-                                className="h-3.5 w-3.5 transition-transform group-hover:rotate-[-45deg]"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden="true"
+                        {unfocusedMessage ? (
+                            // Custom unfocused message (e.g., waiting for round to start)
+                            <div className="flex items-center gap-2 text-neutral-500">
+                                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime" />
+                                <span className="text-[11px] tracking-[0.2em]">
+                                    {unfocusedMessage}
+                                </span>
+                            </div>
+                        ) : (
+                            // Default restart button
+                            <button
+                                type="button"
+                                className="group flex items-center gap-2 text-neutral-700 transition-colors hover:text-neutral-400"
+                                onClick={resetTypingState}
                             >
-                                <path d="M21 2v6h-6" />
-                                <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-                                <path d="M3 22v-6h6" />
-                                <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-                            </svg>
-                            <span className="text-[11px] tracking-[0.2em] text-neutral-500">
-                                CLICK OR PRESS ENTER TO RESTART
-                            </span>
-                        </button>
+                                <svg
+                                    className="h-3.5 w-3.5 transition-transform group-hover:rotate-[-45deg]"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M21 2v6h-6" />
+                                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+                                    <path d="M3 22v-6h6" />
+                                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+                                </svg>
+                                <span className="text-[11px] tracking-[0.2em] text-neutral-500">
+                                    CLICK OR PRESS ENTER TO RESTART
+                                </span>
+                            </button>
+                        )}
                     </div>
                 )}
 
