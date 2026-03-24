@@ -29,6 +29,13 @@ export default defineSchema({
         maxPlayers: v.number(),
         difficulty: v.string(),
         visibility: v.string(),
+        status: v.union(
+            v.literal("waiting"),
+            v.literal("playing"),
+            v.literal("finished"),
+        ),
+        players: v.array(v.id("user")),
+        startedAt: v.optional(v.number()),
         words: v.array(
             v.object({
                 text: v.string(),

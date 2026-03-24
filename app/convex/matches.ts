@@ -63,12 +63,63 @@ export const createMatch = mutation({
             maxPlayers: args.maxPlayers,
             difficulty: args.difficulty,
             visibility: args.visibility,
+            status: "waiting",
+            players: [args.ownerId],
             words: args.words,
         });
 
         return {
             matchId,
             code,
+        };
+    },
+});
+
+/** Starts a match, changing its status from waiting to playing. */
+export const startMatch = mutation({
+    args: {
+        matchId: v.id("match"),
+        userId: v.id("user"),
+    },
+
+    handler: async (ctx, args) => {
+        const match = await ctx.db.get(args.matchId);
+
+        if (!match) {
+            throw new Error("Match not found");
+        }
+
+        if (match.ownerId !== args.userId) {
+            throw new Error("Only the match owner can start the match");
+        }
+
+        if (match.status !== "waiting") {
+            throw new Error("Match has already started or finished");
+        }
+
+        await ctx.db.patch(args.matchId, {
+            status: "playing",
+            startedAt: Date.now(),
+        });
+
+        return { success: true };
+    },
+});
+
+/** Gets a match with player count and owner details. */
+export const getMatchWithPlayers = query({
+    args: { matchId: v.id("match") },
+
+    handler: async (ctx, args) => {
+        const match = await ctx.db.get(args.matchId);
+
+        if (!match) {
+            return null;
+        }
+
+        return {
+            ...match,
+            playerCount: match.players.length,
         };
     },
 });
