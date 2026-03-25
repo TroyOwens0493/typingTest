@@ -145,10 +145,16 @@ function CodeCell({
     );
 }
 
+/* ─── Props ─── */
+type JoinProps = {
+    isSubmitting?: boolean;
+    actionError?: string;
+};
+
 /* ═══════════════════════════════════════════════════════
    JOIN MATCH VIEW
    ═══════════════════════════════════════════════════════ */
-export function Join() {
+export function Join({ isSubmitting = false, actionError }: JoinProps) {
     const [joinMode, setJoinMode] = useState<JoinMode>("random");
     const [lobbyCode, setLobbyCode] = useState<string[]>(Array(6).fill(""));
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -263,6 +269,15 @@ export function Join() {
                         Joing a random match or use a lobby code from a
                         friend.
                     </p>
+
+                    {/* Error display */}
+                    {actionError && (
+                        <div className="mt-6 border border-red-500/30 bg-red-500/10 px-4 py-3">
+                            <p className="text-[11px] tracking-[0.1em] text-red-400">
+                                {actionError}
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* ─── Two-column layout ─── */}
@@ -319,18 +334,24 @@ export function Join() {
                                 }
                                 footer={
                                     <div className="px-4 py-4 sm:px-5">
-                                        <button
-                                            type="button"
-                                            disabled={!codeComplete || joinMode === "random"}
-                                            className={`w-full py-3.5 text-[11px] font-bold tracking-[0.2em] transition-all ${codeComplete && joinMode === "code"
-                                                ? "bg-lime text-black hover:bg-[#d4ff4d]"
-                                                : "border border-neutral-800/80 bg-transparent text-neutral-700 cursor-not-allowed"
-                                                }`}
-                                        >
-                                            {codeComplete
-                                                ? `JOIN \u2014 ${codeDisplay.slice(0, 3)}-${codeDisplay.slice(3)}`
-                                                : "ENTER CODE TO JOIN"}
-                                        </button>
+                                        <form method="post">
+                                            <input type="hidden" name="intent" value="joinWithCode" />
+                                            <input type="hidden" name="code" value={codeDisplay} />
+                                            <button
+                                                type="submit"
+                                                disabled={!codeComplete || joinMode === "random" || isSubmitting}
+                                                className={`w-full py-3.5 text-[11px] font-bold tracking-[0.2em] transition-all ${codeComplete && joinMode === "code" && !isSubmitting
+                                                    ? "bg-lime text-black hover:bg-[#d4ff4d]"
+                                                    : "border border-neutral-800/80 bg-transparent text-neutral-700 cursor-not-allowed"
+                                                    }`}
+                                            >
+                                                {isSubmitting && joinMode === "code"
+                                                    ? "JOINING..."
+                                                    : codeComplete
+                                                        ? `JOIN \u2014 ${codeDisplay.slice(0, 3)}-${codeDisplay.slice(3)}`
+                                                        : "ENTER CODE TO JOIN"}
+                                            </button>
+                                        </form>
                                     </div>
                                 }
                             >
@@ -385,12 +406,19 @@ export function Join() {
                         {/* Random queue CTA (shown when random is selected) */}
                         {joinMode === "random" && (
                             <div className="pt-2">
-                                <button
-                                    type="button"
-                                    className="w-full bg-lime px-8 py-4 text-[11px] font-bold tracking-[0.2em] text-black transition-colors hover:bg-[#d4ff4d] sm:w-auto"
-                                >
-                                    FIND MATCH
-                                </button>
+                                <form method="post">
+                                    <input type="hidden" name="intent" value="joinRandom" />
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className={`w-full px-8 py-4 text-[11px] font-bold tracking-[0.2em] transition-colors sm:w-auto ${isSubmitting
+                                            ? "bg-neutral-700 text-neutral-500 cursor-not-allowed"
+                                            : "bg-lime text-black hover:bg-[#d4ff4d]"
+                                            }`}
+                                    >
+                                        {isSubmitting ? "FINDING MATCH..." : "FIND MATCH"}
+                                    </button>
+                                </form>
                                 <p className="mt-3 text-[10px] tracking-[0.15em] text-neutral-800">
                                     {"// you'll be placed in the next available lobby"}
                                 </p>

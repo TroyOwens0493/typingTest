@@ -123,3 +123,65 @@ export const getMatchWithPlayers = query({
         };
     },
 });
+
+/** Looks up a match by its 6-character share code. */
+export const getMatchByCode = query({
+    args: { code: v.string() },
+
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("match")
+            .withIndex("by_code", (q) => q.eq("code", args.code))
+            .unique();
+    },
+});
+
+/** Fetches all public matches that are waiting and have room for more players. */
+export const getPublicWaitingMatches = query({
+    args: {},
+
+    handler: async (ctx) => {
+        const allMatches = await ctx.db.query("match").collect();
+
+        return allMatches.filter(
+            (match) =>
+                match.visibility === "public" &&
+                match.status === "waiting" &&
+                match.players.length < match.maxPlayers,
+        );
+    },
+});
+
+/** Adds a user to a match's player list after validating eligibility. */
+export const joinMatch = mutation({
+    args: {
+        matchId: v.id("match"),
+        userId: v.id("user"),
+    },
+
+    handler: async (ctx, args) => {
+        const match = await ctx.db.get(args.matchId);
+
+        if (!match) {
+            throw new Error("Match not found");
+        }
+
+        if (match.status !== "waiting") {
+            throw new Error("Match has already started");
+        }
+
+        if (match.players.includes(args.userId)) {
+            throw new Error("You have already joined this match");
+        }
+
+        if (match.players.length >= match.maxPlayers) {
+            throw new Error("Match is full");
+        }
+
+        await ctx.db.patch(args.matchId, {
+            players: [...match.players, args.userId],
+        });
+
+        return { success: true };
+    },
+});
