@@ -1,6 +1,9 @@
 import { ConvexHttpClient } from "convex/browser";
-import { redirect, useActionData, useLoaderData, useNavigation } from "react-router";
+import { redirect, useActionData, useLoaderData, useNavigation, useNavigate } from "react-router";
+import { useQuery } from "convex/react";
+import { useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import type { Id } from "../convex/_generated/dataModel";
 
 import { api } from "../convex/_generated/api";
 import { Play } from "../views/play";
@@ -8,6 +11,10 @@ import { authenticate, getAuthenticatedSession } from "./authenticate";
 
 const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string);
 
+/**
+ * Handles authentication and extracts route params.
+ * Match data is fetched reactively in the component via useQuery.
+ */
 export async function loader({ request, params }: LoaderFunctionArgs) {
     await authenticate(request);
 
@@ -17,24 +24,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     const { gameId } = params;
-
     if (!gameId) {
         return redirect("/home");
     }
 
-    const match = await convex.query(api.matches.getMatchWithPlayers, {
-        matchId: gameId as any,
-    });
-
-    if (!match) {
-        return redirect("/home");
-    }
-
-    const isOwner = match.ownerId === session.userId;
-
-    return { match, isOwner, currentUserId: session.userId };
+    return {
+        matchId: gameId as Id<"match">,
+        currentUserId: session.userId,
+    };
 }
 
+/** Handles starting the match via form submission. */
 export async function action({ request, params }: ActionFunctionArgs) {
     const session = await getAuthenticatedSession(request);
     if (!session) {
@@ -67,11 +67,34 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function Page() {
-    const { match, isOwner, currentUserId } = useLoaderData<typeof loader>();
+    const { matchId, currentUserId } = useLoaderData<typeof loader>();
     const actionData = useActionData<typeof action>();
     const navigation = useNavigation();
+    const navigate = useNavigate();
+
+    // Real-time subscription to match data
+    const match = useQuery(api.matches.getMatchWithPlayers, { matchId });
 
     const isSubmitting = navigation.state === "submitting";
+
+    // Redirect to join page if match doesn't exist or is deleted
+    useEffect(() => {
+        if (match === null) {
+            navigate("/join");
+        }
+    }, [match, navigate]);
+
+    // Loading state while waiting for initial query response
+    if (match === undefined) {
+        return null;
+    }
+
+    // Match was deleted/doesn't exist
+    if (match === null) {
+        return null;
+    }
+
+    const isOwner = match.ownerId === currentUserId;
 
     return (
         <Play
