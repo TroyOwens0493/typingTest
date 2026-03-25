@@ -13,6 +13,7 @@ type PlayProps = {
     matchId: Id<"match">;
     currentUserId: Id<"user">;
     status: "waiting" | "playing" | "finished";
+    joinCode: string;
     isSubmitting?: boolean;
     actionError?: string;
 };
@@ -23,6 +24,7 @@ export function Play({
     playerCount,
     maxPlayers,
     status,
+    joinCode,
     isSubmitting,
     actionError,
 }: PlayProps) {
@@ -68,8 +70,8 @@ export function Play({
                                     accent
                                 />
                                 <Panel.Row
-                                    label="STATUS"
-                                    value={status.toUpperCase()}
+                                    label="JOIN CODE"
+                                    value={joinCode}
                                 />
                                 <Panel.Row
                                     label="GAME MODE"

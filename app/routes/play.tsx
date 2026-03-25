@@ -82,6 +82,7 @@ export default function Page() {
             matchId={match._id}
             currentUserId={currentUserId}
             status={match.status}
+            joinCode={match.code}
             isSubmitting={isSubmitting}
             actionError={actionData?.error}
         />
