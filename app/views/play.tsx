@@ -2,8 +2,26 @@ import { Nav } from "~/components/nav";
 import { Footer } from "~/components/footer";
 import { Panel } from "~/components/panel";
 import { TypingTestComponent } from "~/components/typing-test-component";
-import type { TypingWord } from "~/models/typingTypes";
+import { useMutation } from "convex/react";
+import { useCallback } from "react";
+import { api } from "~/convex/_generated/api";
 import type { Id } from "~/convex/_generated/dataModel";
+import type { GameMode } from "~/models/gameModes";
+import type { PlayerGameStats, TypingWord } from "~/models/typingTypes";
+
+type EliminatedPlayer = {
+    userId: Id<"user">;
+    wpm: number;
+    accuracy: number;
+    timeInSeconds: number;
+    eliminatedAt: number;
+};
+
+type OpponentState = {
+    userId: string;
+    username: string;
+    stats: PlayerGameStats;
+};
 
 type PlayProps = {
     words: TypingWord[];
@@ -12,6 +30,9 @@ type PlayProps = {
     maxPlayers: number;
     matchId: Id<"match">;
     currentUserId: Id<"user">;
+    gamemode: GameMode;
+    eliminatedPlayers: EliminatedPlayer[];
+    opponentStates: OpponentState[];
     status: "waiting" | "playing" | "finished";
     startedAt?: number;
     joinCode: string;
@@ -24,6 +45,11 @@ export function Play({
     isOwner,
     playerCount,
     maxPlayers,
+    matchId,
+    currentUserId,
+    gamemode,
+    eliminatedPlayers,
+    opponentStates,
     status,
     startedAt,
     joinCode,
@@ -31,6 +57,42 @@ export function Play({
     actionError,
 }: PlayProps) {
     const showLobby = status === "waiting";
+    const eliminatePlayer = useMutation(api.matches.eliminatePlayer);
+    const updatePlayerGameState = useMutation(api.matches.updatePlayerGameState);
+
+    const currentPlayerElimination = eliminatedPlayers.find(
+        (player) => player.userId === currentUserId,
+    );
+
+    /** Persists the current player's elimination result in instant-fail mode. */
+    const handlePlayerEliminated = useCallback(
+        async (stats: PlayerGameStats) => {
+            if (gamemode !== "instant-fail" || currentPlayerElimination) {
+                return;
+            }
+
+            await eliminatePlayer({
+                matchId,
+                userId: currentUserId,
+                wpm: stats.wpm,
+                accuracy: stats.accuracy,
+                timeInSeconds: stats.timeInSeconds,
+            });
+        },
+        [currentPlayerElimination, currentUserId, eliminatePlayer, gamemode, matchId],
+    );
+
+    /** Persists the current player's latest word snapshot at each word boundary. */
+    const handleWordBoundary = useCallback(
+        async (nextWords: TypingWord[]) => {
+            await updatePlayerGameState({
+                matchId,
+                userId: currentUserId,
+                words: nextWords,
+            });
+        },
+        [currentUserId, matchId, updatePlayerGameState],
+    );
 
     return (
         <main className="relative flex h-screen flex-col overflow-hidden bg-[#050505] font-mono text-neutral-400">
@@ -46,12 +108,78 @@ export function Play({
 
             <div className="relative z-10 flex flex-1">
                 {/* Main game area */}
-                <div className="flex-1">
+                <div className="flex flex-1 flex-col">
+                    {status === "playing" && opponentStates.length > 0 && (
+                        <div className="px-6 pt-6 lg:px-12 lg:pt-8">
+                            <div className="mx-auto w-full max-w-3xl border border-neutral-800/80 bg-[#0a0a0a]">
+                                <div className="flex items-center justify-between border-b border-neutral-800/80 px-4 py-3 sm:px-5">
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse-slow" />
+                                        <span className="text-[10px] tracking-[0.3em] text-neutral-600">
+                                            OPPONENT LIVE STATS
+                                        </span>
+                                    </div>
+                                    <span className="text-[9px] tracking-[0.2em] text-neutral-700">
+                                        MATCH IN PROGRESS
+                                    </span>
+                                </div>
+
+                                <div className="divide-y divide-neutral-800/50">
+                                    {opponentStates.map((opponent) => (
+                                        <div
+                                            key={opponent.userId}
+                                            className="grid gap-4 px-4 py-4 sm:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))] sm:px-5"
+                                        >
+                                            <div>
+                                                <p className="text-[9px] tracking-[0.3em] text-neutral-700">
+                                                    PLAYER
+                                                </p>
+                                                <p className="mt-1.5 truncate text-sm tracking-[0.08em] text-white">
+                                                    {opponent.username}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] tracking-[0.3em] text-neutral-700">WPM</p>
+                                                <p className="mt-1.5 text-sm tabular-nums text-lime">
+                                                    {opponent.stats.wpm}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] tracking-[0.3em] text-neutral-700">ACC</p>
+                                                <p className="mt-1.5 text-sm tabular-nums text-neutral-300">
+                                                    {opponent.stats.accuracy}%
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] tracking-[0.3em] text-neutral-700">TIME</p>
+                                                <p className="mt-1.5 text-sm tabular-nums text-neutral-300">
+                                                    {opponent.stats.timeInSeconds}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <TypingTestComponent
                         words={words}
                         unfocusedMessage={showLobby ? "WAIT FOR HOST TO START THE ROUND" : undefined}
                         allowFocusChange={false}
                         timerStartTime={startedAt}
+                        instantFailEnabled={gamemode === "instant-fail" && status === "playing"}
+                        onEliminated={handlePlayerEliminated}
+                        onWordBoundary={handleWordBoundary}
+                        initialEliminatedStats={
+                            currentPlayerElimination
+                                ? {
+                                    wpm: currentPlayerElimination.wpm,
+                                    accuracy: currentPlayerElimination.accuracy,
+                                    timeInSeconds: currentPlayerElimination.timeInSeconds,
+                                }
+                                : undefined
+                        }
                     />
                 </div>
 

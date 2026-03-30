@@ -34,7 +34,18 @@ export default defineSchema({
             v.literal("playing"),
             v.literal("finished"),
         ),
+        winnerId: v.optional(v.id("user")),
+        finishedAt: v.optional(v.number()),
         players: v.array(v.id("user")),
+        eliminatedPlayers: v.array(
+            v.object({
+                userId: v.id("user"),
+                wpm: v.number(),
+                accuracy: v.number(),
+                timeInSeconds: v.number(),
+                eliminatedAt: v.number(),
+            }),
+        ),
         startedAt: v.optional(v.number()),
         words: v.array(
             v.object({
@@ -47,6 +58,23 @@ export default defineSchema({
             }),
         ),
     }).index("by_code", ["code"]),
+    playerGameState: defineTable({
+        matchId: v.id("match"),
+        userId: v.id("user"),
+        words: v.array(
+            v.object({
+                text: v.string(),
+                state: v.union(v.literal("pending"), v.literal("active")),
+                status: v.optional(
+                    v.union(v.literal("correct"), v.literal("incorrect")),
+                ),
+                typed: v.optional(v.string()),
+            }),
+        ),
+        updatedAt: v.number(),
+    })
+        .index("by_match", ["matchId"])
+        .index("by_match_user", ["matchId", "userId"]),
     sessions: defineTable({
         userId: v.id("user"),
         tokenHash: v.string(),
