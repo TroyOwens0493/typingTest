@@ -5,4 +5,10 @@ export type TypingWord = {
     typed?: string;
 };
 
+export type PlayerGameStats = {
+    wpm: number;
+    accuracy: number;
+    timeInSeconds: number;
+};
+
 export type Difficulties = "easy" | "medium" | "hard";

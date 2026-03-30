@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import type { Id } from "../convex/_generated/dataModel";
+import type { GameMode } from "~/models/gameModes";
 
 import { api } from "../convex/_generated/api";
 import { Play } from "../views/play";
@@ -104,6 +105,8 @@ export default function Page() {
             maxPlayers={match.maxPlayers}
             matchId={match._id}
             currentUserId={currentUserId}
+            gamemode={match.gamemode as GameMode}
+            eliminatedPlayers={match.eliminatedPlayers}
             status={match.status}
             startedAt={match.startedAt}
             joinCode={match.code}

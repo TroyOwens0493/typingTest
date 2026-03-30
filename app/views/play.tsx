@@ -2,8 +2,20 @@ import { Nav } from "~/components/nav";
 import { Footer } from "~/components/footer";
 import { Panel } from "~/components/panel";
 import { TypingTestComponent } from "~/components/typing-test-component";
-import type { TypingWord } from "~/models/typingTypes";
+import { useMutation } from "convex/react";
+import { useCallback } from "react";
+import { api } from "~/convex/_generated/api";
 import type { Id } from "~/convex/_generated/dataModel";
+import type { GameMode } from "~/models/gameModes";
+import type { PlayerGameStats, TypingWord } from "~/models/typingTypes";
+
+type EliminatedPlayer = {
+    userId: Id<"user">;
+    wpm: number;
+    accuracy: number;
+    timeInSeconds: number;
+    eliminatedAt: number;
+};
 
 type PlayProps = {
     words: TypingWord[];
@@ -12,6 +24,8 @@ type PlayProps = {
     maxPlayers: number;
     matchId: Id<"match">;
     currentUserId: Id<"user">;
+    gamemode: GameMode;
+    eliminatedPlayers: EliminatedPlayer[];
     status: "waiting" | "playing" | "finished";
     startedAt?: number;
     joinCode: string;
@@ -24,6 +38,10 @@ export function Play({
     isOwner,
     playerCount,
     maxPlayers,
+    matchId,
+    currentUserId,
+    gamemode,
+    eliminatedPlayers,
     status,
     startedAt,
     joinCode,
@@ -31,6 +49,29 @@ export function Play({
     actionError,
 }: PlayProps) {
     const showLobby = status === "waiting";
+    const eliminatePlayer = useMutation(api.matches.eliminatePlayer);
+
+    const currentPlayerElimination = eliminatedPlayers.find(
+        (player) => player.userId === currentUserId,
+    );
+
+    /** Persists the current player's elimination result in instant-fail mode. */
+    const handlePlayerEliminated = useCallback(
+        async (stats: PlayerGameStats) => {
+            if (gamemode !== "instant-fail" || currentPlayerElimination) {
+                return;
+            }
+
+            await eliminatePlayer({
+                matchId,
+                userId: currentUserId,
+                wpm: stats.wpm,
+                accuracy: stats.accuracy,
+                timeInSeconds: stats.timeInSeconds,
+            });
+        },
+        [currentPlayerElimination, currentUserId, eliminatePlayer, gamemode, matchId],
+    );
 
     return (
         <main className="relative flex h-screen flex-col overflow-hidden bg-[#050505] font-mono text-neutral-400">
@@ -52,6 +93,17 @@ export function Play({
                         unfocusedMessage={showLobby ? "WAIT FOR HOST TO START THE ROUND" : undefined}
                         allowFocusChange={false}
                         timerStartTime={startedAt}
+                        instantFailEnabled={gamemode === "instant-fail" && status === "playing"}
+                        onEliminated={handlePlayerEliminated}
+                        initialEliminatedStats={
+                            currentPlayerElimination
+                                ? {
+                                    wpm: currentPlayerElimination.wpm,
+                                    accuracy: currentPlayerElimination.accuracy,
+                                    timeInSeconds: currentPlayerElimination.timeInSeconds,
+                                }
+                                : undefined
+                        }
                     />
                 </div>
 

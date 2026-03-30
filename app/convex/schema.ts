@@ -35,6 +35,15 @@ export default defineSchema({
             v.literal("finished"),
         ),
         players: v.array(v.id("user")),
+        eliminatedPlayers: v.array(
+            v.object({
+                userId: v.id("user"),
+                wpm: v.number(),
+                accuracy: v.number(),
+                timeInSeconds: v.number(),
+                eliminatedAt: v.number(),
+            }),
+        ),
         startedAt: v.optional(v.number()),
         words: v.array(
             v.object({

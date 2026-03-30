@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { calculateAccuracy, calculateWpm } from "~/models/gameHelpers";
-import type { TypingWord } from "~/models/typingTypes";
+import type { PlayerGameStats, TypingWord } from "~/models/typingTypes";
 
 // Renders the active word with a blinking cursor and per-character styling.
 function ActiveWord({
@@ -111,6 +111,12 @@ type TypingTestComponentProps = {
     allowFocusChange?: boolean;
     /** Optional external timer start timestamp (ms since epoch), used for synchronized match timers. */
     timerStartTime?: number;
+    /** Enables elimination on the first typing mistake. */
+    instantFailEnabled?: boolean;
+    /** Called once when the player gets eliminated. */
+    onEliminated?: (stats: PlayerGameStats) => Promise<void> | void;
+    /** Existing elimination result to restore from match state. */
+    initialEliminatedStats?: PlayerGameStats;
 };
 
 const VISIBLE_LINE_COUNT = 5;
@@ -139,11 +145,60 @@ function getVisibleWordWindow(words: TypingWord[], activeIndex: number) {
     };
 }
 
+/** Builds a stats snapshot from the current typed value and elapsed time. */
+function getStatsSnapshot(
+    words: TypingWord[],
+    typedValue: string,
+    elapsedSeconds: number,
+) {
+    const typedArr = typedValue.split(" ");
+    const activeIndex = Math.max(0, typedArr.length - 1);
+
+    const evaluatedWords: TypingWord[] = words.slice(0, activeIndex).map((word, index) => {
+        const typedWord = typedArr[index] ?? "";
+        const status: TypingWord["status"] =
+            typedWord === word.text ? "correct" : "incorrect";
+
+        return {
+            ...word,
+            typed: typedWord,
+            status,
+            state: "pending",
+        };
+    });
+
+    const activeWord = words[activeIndex];
+    const activeTyped = typedArr[activeIndex] ?? "";
+
+    if (activeWord && activeTyped.length > 0) {
+        evaluatedWords.push({
+            ...activeWord,
+            typed: activeTyped,
+            status: "incorrect",
+            state: "pending",
+        });
+    }
+
+    return {
+        wpm: calculateWpm({
+            words: evaluatedWords,
+            timeInSeconds: elapsedSeconds,
+        }),
+        accuracy: calculateAccuracy({
+            words: evaluatedWords,
+        }),
+        timeInSeconds: elapsedSeconds,
+    };
+}
+
 export function TypingTestComponent({
     words,
     unfocusedMessage,
     allowFocusChange = true,
     timerStartTime,
+    instantFailEnabled = false,
+    onEliminated,
+    initialEliminatedStats,
 }: TypingTestComponentProps) {
     // Tracks whether the typing surface is focused for input.
     // If unfocusedMessage is provided, start unfocused.
@@ -160,6 +215,13 @@ export function TypingTestComponent({
     const [activeWords, setActiveWords] = useState(words);
     // Whether the typing test has been completed.
     const [isComplete, setIsComplete] = useState(false);
+    // Whether the player has been eliminated by instant-fail rules.
+    const [isEliminated, setIsEliminated] = useState(false);
+    // Cached stats to display after elimination.
+    const [eliminatedStats, setEliminatedStats] = useState<PlayerGameStats | undefined>(
+        initialEliminatedStats,
+    );
+    const hasReportedElimination = useRef(Boolean(initialEliminatedStats));
     // Effective timer start timestamp, preferring external match start time when provided.
     const effectiveStartTime = timerStartTime ?? startTime;
 
@@ -196,6 +258,9 @@ export function TypingTestComponent({
         setWordsTyped(0);
         setActiveWords(words);
         setIsComplete(false);
+        setIsEliminated(false);
+        setEliminatedStats(undefined);
+        hasReportedElimination.current = false;
         setIsFocused(true);
     }, [words]);
 
@@ -206,7 +271,7 @@ export function TypingTestComponent({
             return;
         }
 
-        if (!isFocused || isComplete) return;
+        if (!isFocused || isComplete || isEliminated) return;
         setTyped((prev) => {
             let nextTyped = prev;
 
@@ -224,10 +289,48 @@ export function TypingTestComponent({
                     setStartTime(Date.now());
                 }
                 nextTyped = `${prev}${eventValue}`;
+
+                if (instantFailEnabled) {
+                    const typedArr = nextTyped.split(" ");
+                    const activeIndex = Math.max(0, typedArr.length - 1);
+                    const activeWord = activeWords[activeIndex];
+                    const activeTyped = typedArr[activeIndex] ?? "";
+
+                    if (activeWord && !activeWord.text.startsWith(activeTyped)) {
+                        const elapsedSeconds =
+                            effectiveStartTime > 0
+                                ? Math.max(0, Math.floor((Date.now() - effectiveStartTime) / 1000))
+                                : 0;
+                        const stats = getStatsSnapshot(activeWords, nextTyped, elapsedSeconds);
+
+                        setTimerInSeconds(elapsedSeconds);
+                        setEliminatedStats(stats);
+                        setIsEliminated(true);
+                        setIsComplete(true);
+                        setIsFocused(false);
+
+                        if (!hasReportedElimination.current) {
+                            hasReportedElimination.current = true;
+                            void Promise.resolve(onEliminated?.(stats));
+                        }
+                    }
+                }
             }
             return nextTyped;
         });
-    }, [isFocused, isComplete, startTime, resetTypingState, allowFocusChange, timerStartTime]);
+    }, [
+        isFocused,
+        isComplete,
+        isEliminated,
+        startTime,
+        resetTypingState,
+        allowFocusChange,
+        timerStartTime,
+        instantFailEnabled,
+        activeWords,
+        effectiveStartTime,
+        onEliminated,
+    ]);
 
     // Recompute word states whenever typed input changes.
     useEffect(() => {
@@ -286,6 +389,20 @@ export function TypingTestComponent({
         setIsComplete(false);
     }, [words]);
 
+    // Restores elimination state from persisted match data.
+    useEffect(() => {
+        if (!initialEliminatedStats) {
+            return;
+        }
+
+        setEliminatedStats(initialEliminatedStats);
+        setTimerInSeconds(initialEliminatedStats.timeInSeconds);
+        setIsEliminated(true);
+        setIsComplete(true);
+        setIsFocused(false);
+        hasReportedElimination.current = true;
+    }, [initialEliminatedStats]);
+
     // Recompute displayed elapsed time when using an external synchronized timer.
     useEffect(() => {
         if (timerStartTime === undefined || isComplete) {
@@ -303,7 +420,7 @@ export function TypingTestComponent({
                 resetTypingState();
                 return;
             }
-            if (!isFocused || isComplete) return;
+            if (!isFocused || isComplete || isEliminated) return;
             getSetWords(e.key);
         }
 
@@ -312,7 +429,7 @@ export function TypingTestComponent({
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [getSetWords, isFocused, isComplete, resetTypingState, allowFocusChange]);
+    }, [getSetWords, isFocused, isComplete, isEliminated, resetTypingState, allowFocusChange]);
 
     // Start/stop the interval that updates elapsed time.
     useEffect(() => {
@@ -360,7 +477,36 @@ export function TypingTestComponent({
             >
                 {!isFocused && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[3px]">
-                        {unfocusedMessage ? (
+                        {isEliminated && eliminatedStats ? (
+                            <div className="w-full max-w-lg border border-red-400/30 bg-black/80 p-6">
+                                <p className="text-center text-xs tracking-[0.25em] text-red-400">
+                                    ELIMINATED
+                                </p>
+                                <p className="mt-2 text-center text-[10px] tracking-[0.15em] text-neutral-500">
+                                    YOU MADE A MISTAKE IN INSTANT FAIL MODE
+                                </p>
+                                <div className="mt-5 grid grid-cols-3 gap-3">
+                                    <div className="border border-neutral-800/80 p-3 text-center">
+                                        <p className="text-[9px] tracking-[0.2em] text-neutral-600">WPM</p>
+                                        <p className="mt-1 text-lg tabular-nums text-lime">
+                                            {eliminatedStats.wpm}
+                                        </p>
+                                    </div>
+                                    <div className="border border-neutral-800/80 p-3 text-center">
+                                        <p className="text-[9px] tracking-[0.2em] text-neutral-600">ACC</p>
+                                        <p className="mt-1 text-lg tabular-nums text-neutral-200">
+                                            {eliminatedStats.accuracy}%
+                                        </p>
+                                    </div>
+                                    <div className="border border-neutral-800/80 p-3 text-center">
+                                        <p className="text-[9px] tracking-[0.2em] text-neutral-600">TIME</p>
+                                        <p className="mt-1 text-lg tabular-nums text-neutral-200">
+                                            {eliminatedStats.timeInSeconds}s
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : unfocusedMessage ? (
                             // Custom unfocused message (e.g., waiting for round to start)
                             <div className="flex items-center gap-2 text-neutral-500">
                                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime" />

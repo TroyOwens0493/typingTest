@@ -65,6 +65,7 @@ export const createMatch = mutation({
             visibility: args.visibility,
             status: "waiting",
             players: [args.ownerId],
+            eliminatedPlayers: [],
             words: args.words,
         });
 
@@ -180,6 +181,56 @@ export const joinMatch = mutation({
 
         await ctx.db.patch(args.matchId, {
             players: [...match.players, args.userId],
+        });
+
+        return { success: true };
+    },
+});
+
+/** Records a player elimination with their final stats for instant-fail mode. */
+export const eliminatePlayer = mutation({
+    args: {
+        matchId: v.id("match"),
+        userId: v.id("user"),
+        wpm: v.number(),
+        accuracy: v.number(),
+        timeInSeconds: v.number(),
+    },
+
+    handler: async (ctx, args) => {
+        const match = await ctx.db.get(args.matchId);
+
+        if (!match) {
+            throw new Error("Match not found");
+        }
+
+        if (match.gamemode !== "instant-fail") {
+            throw new Error("Eliminations are only supported in instant-fail mode");
+        }
+
+        if (match.status !== "playing") {
+            throw new Error("Match is not currently in progress");
+        }
+
+        if (!match.players.includes(args.userId)) {
+            throw new Error("Player is not in this match");
+        }
+
+        if (match.eliminatedPlayers.some((player) => player.userId === args.userId)) {
+            return { success: true };
+        }
+
+        await ctx.db.patch(args.matchId, {
+            eliminatedPlayers: [
+                ...match.eliminatedPlayers,
+                {
+                    userId: args.userId,
+                    wpm: args.wpm,
+                    accuracy: args.accuracy,
+                    timeInSeconds: args.timeInSeconds,
+                    eliminatedAt: Date.now(),
+                },
+            ],
         });
 
         return { success: true };
