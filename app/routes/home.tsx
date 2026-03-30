@@ -14,14 +14,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
         return redirect("/login");
     }
 
-    const user = await convex.query(api.users.getUser, {
-        id: session.userId,
-    });
-
-    const hasRecentSession =
-        user.recentSessions.time.length > 0 ||
-        user.recentSessions.result.length > 0 ||
-        user.recentSessions.place > 0;
+    const [user, recentMatches] = await Promise.all([
+        convex.query(api.users.getUser, {
+            id: session.userId,
+        }),
+        convex.query(api.users.getRecentMatchesByUser, {
+            userId: session.userId,
+            limit: 5,
+        }),
+    ]);
 
     return {
         dashboard: {
@@ -34,18 +35,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
             peakWPM: user.peakWPM,
             totalTime: user.totalTime,
             averageAccuracy: user.averageAccuracy,
-            recentSessions: hasRecentSession
-                ? [
-                    {
-                        id: 1,
-                        duration: user.recentSessions.time,
-                        wpm: user.recentSessions.wpm,
-                        accuracy: user.recentSessions.accuracy,
-                        result: user.recentSessions.result,
-                        place: user.recentSessions.place,
-                    },
-                ]
-                : [],
+            recentSessions: recentMatches.map((recentMatch, index) => ({
+                id: index + 1,
+                duration: `${recentMatch.timeInSeconds}s`,
+                wpm: recentMatch.wpm,
+                accuracy: recentMatch.accuracy,
+                result: recentMatch.result,
+                place: recentMatch.place,
+            })),
         },
     };
 }

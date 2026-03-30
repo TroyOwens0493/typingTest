@@ -30,14 +30,24 @@ export const createUser = mutation({
             peakWPM: 0,
             totalTime: 0,
             averageAccuracy: 0,
-            recentSessions: {
-                time: "",
-                wpm: 0,
-                accuracy: 0,
-                result: "",
-                place: 0,
-            },
         })
+    },
+});
+
+export const getRecentMatchesByUser = query({
+    args: {
+        userId: v.id("user"),
+        limit: v.optional(v.number()),
+    },
+
+    handler: async (ctx, args) => {
+        const recentMatches = await ctx.db
+            .query("recentMatch")
+            .withIndex("by_user_finished_at", (q) => q.eq("userId", args.userId))
+            .order("desc")
+            .take(args.limit ?? 5);
+
+        return recentMatches;
     },
 });
 

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 
+import type { MutationCtx } from "./_generated/server";
 import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 
@@ -102,6 +103,154 @@ function getInstantFailWinner(
     const eliminatedIds = new Set(eliminatedPlayers.map((player) => player.userId));
 
     return players.find((playerId) => !eliminatedIds.has(playerId));
+}
+
+type FinalPlayerStats = {
+    userId: Id<"user">;
+    wpm: number;
+    accuracy: number;
+    timeInSeconds: number;
+    place: number;
+    result: "WIN" | "LOSS";
+};
+
+/** Builds final stats for each player once an instant-fail match finishes. */
+function getInstantFailFinalPlayerStats({
+    players,
+    eliminatedPlayers,
+    winnerId,
+    finishedAt,
+    startedAt,
+}: {
+    players: Id<"user">[];
+    eliminatedPlayers: Array<{
+        userId: Id<"user">;
+        wpm: number;
+        accuracy: number;
+        timeInSeconds: number;
+        eliminatedAt: number;
+    }>;
+    winnerId: Id<"user">;
+    finishedAt: number;
+    startedAt?: number;
+}) {
+    const placementStats: FinalPlayerStats[] = [
+        {
+            userId: winnerId,
+            wpm: 0,
+            accuracy: 100,
+            timeInSeconds: startedAt ? Math.max(0, Math.floor((finishedAt - startedAt) / 1000)) : 0,
+            place: 1,
+            result: "WIN",
+        },
+        ...[...eliminatedPlayers]
+            .sort((left, right) => right.eliminatedAt - left.eliminatedAt)
+            .map((player, index) => ({
+                userId: player.userId,
+                wpm: player.wpm,
+                accuracy: player.accuracy,
+                timeInSeconds: player.timeInSeconds,
+                place: index + 2,
+                result: "LOSS" as const,
+            })),
+    ];
+
+    return players
+        .map((playerId) => placementStats.find((player) => player.userId === playerId))
+        .filter((player): player is FinalPlayerStats => player !== undefined);
+}
+
+/** Applies aggregate stat updates for a user's newly finished match. */
+function getUpdatedUserStats({
+    existingUser,
+    finalStats,
+}: {
+    existingUser: {
+        gamesPlayed: number;
+        gamesWon: number;
+        averageWPM: number;
+        peakWPM: number;
+        totalTime: number;
+        averageAccuracy: number;
+    };
+    finalStats: Pick<FinalPlayerStats, "wpm" | "accuracy" | "timeInSeconds" | "result">;
+}) {
+    const previousGamesPlayed = existingUser.gamesPlayed;
+    const nextGamesPlayed = previousGamesPlayed + 1;
+    const totalWpm = existingUser.averageWPM * previousGamesPlayed + finalStats.wpm;
+    const totalAccuracy =
+        existingUser.averageAccuracy * previousGamesPlayed + finalStats.accuracy;
+
+    return {
+        gamesPlayed: nextGamesPlayed,
+        gamesWon: existingUser.gamesWon + (finalStats.result === "WIN" ? 1 : 0),
+        averageWPM: Math.round(totalWpm / nextGamesPlayed),
+        peakWPM: Math.max(existingUser.peakWPM, finalStats.wpm),
+        totalTime: existingUser.totalTime + finalStats.timeInSeconds,
+        averageAccuracy: Math.round(totalAccuracy / nextGamesPlayed),
+    };
+}
+
+/** Persists completed-match stat history and aggregate updates for each player once. */
+async function finalizeInstantFailMatch({
+    ctx,
+    matchId,
+    players,
+    gamemode,
+    eliminatedPlayers,
+    winnerId,
+    startedAt,
+    finishedAt,
+}: {
+    ctx: MutationCtx;
+    matchId: Id<"match">;
+    players: Id<"user">[];
+    gamemode: string;
+    eliminatedPlayers: Array<{
+        userId: Id<"user">;
+        wpm: number;
+        accuracy: number;
+        timeInSeconds: number;
+        eliminatedAt: number;
+    }>;
+    winnerId: Id<"user">;
+    startedAt?: number;
+    finishedAt: number;
+}) {
+    const finalPlayerStats = getInstantFailFinalPlayerStats({
+        players,
+        eliminatedPlayers,
+        winnerId,
+        finishedAt,
+        startedAt,
+    });
+
+    await Promise.all(
+        finalPlayerStats.map(async (playerStats) => {
+            const user = await ctx.db.get(playerStats.userId);
+
+            if (!user) {
+                throw new Error("User not found while finalizing match");
+            }
+
+            await ctx.db.patch(playerStats.userId, getUpdatedUserStats({
+                existingUser: user,
+                finalStats: playerStats,
+            }));
+
+            await ctx.db.insert("recentMatch", {
+                userId: playerStats.userId,
+                matchId,
+                gamemode,
+                result: playerStats.result,
+                place: playerStats.place,
+                wpm: playerStats.wpm,
+                accuracy: playerStats.accuracy,
+                timeInSeconds: playerStats.timeInSeconds,
+                finishedAt,
+            });
+        }),
+    );
 }
 
 /** Fetches a match by its ID. */
@@ -451,12 +600,26 @@ export const eliminatePlayer = mutation({
             survivingPlayerCount === 1
                 ? getInstantFailWinner(match.players, eliminatedPlayers)
                 : undefined;
+        const finishedAt = winnerId ? Date.now() : undefined;
+
+        if (winnerId && finishedAt !== undefined) {
+            await finalizeInstantFailMatch({
+                ctx,
+                matchId: args.matchId,
+                players: match.players,
+                gamemode: match.gamemode,
+                eliminatedPlayers,
+                winnerId,
+                startedAt: match.startedAt,
+                finishedAt,
+            });
+        }
 
         await ctx.db.patch(args.matchId, {
             eliminatedPlayers,
             status: winnerId ? "finished" : match.status,
             winnerId,
-            finishedAt: winnerId ? Date.now() : undefined,
+            finishedAt,
         });
 
         return { success: true };
