@@ -34,6 +34,8 @@ export default defineSchema({
             v.literal("playing"),
             v.literal("finished"),
         ),
+        winnerId: v.optional(v.id("user")),
+        finishedAt: v.optional(v.number()),
         players: v.array(v.id("user")),
         eliminatedPlayers: v.array(
             v.object({

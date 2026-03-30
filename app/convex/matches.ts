@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
 import { mutation, query } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 
 const MATCH_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const MATCH_CODE_LENGTH = 6;
@@ -89,6 +90,18 @@ function sortOpponentStates(
 
         return left.username.localeCompare(right.username);
     });
+}
+
+/** Resolves the surviving winner in instant-fail mode once one player remains. */
+function getInstantFailWinner(
+    players: Id<"user">[],
+    eliminatedPlayers: Array<{
+        userId: Id<"user">;
+    }>,
+) {
+    const eliminatedIds = new Set(eliminatedPlayers.map((player) => player.userId));
+
+    return players.find((playerId) => !eliminatedIds.has(playerId));
 }
 
 /** Fetches a match by its ID. */
@@ -185,6 +198,8 @@ export const startMatch = mutation({
         await ctx.db.patch(args.matchId, {
             status: "playing",
             startedAt: Date.now(),
+            winnerId: undefined,
+            finishedAt: undefined,
         });
 
         return { success: true };
@@ -255,11 +270,27 @@ export const getMatchWithPlayers = query({
             match.gamemode,
         ).slice(0, 3);
 
+        const playerEntries = await Promise.all(
+            match.players.map(async (playerId) => {
+                const player = await ctx.db.get(playerId);
+
+                if (!player) {
+                    return null;
+                }
+
+                return {
+                    userId: playerId,
+                    username: player.username,
+                };
+            }),
+        );
+
         return {
             ...match,
             playerCount: match.players.length,
             playerWords: playerGameState?.words,
             opponentStates: rankedOpponentStates,
+            playerEntries: playerEntries.filter((playerEntry) => playerEntry !== null),
         };
     },
 });
@@ -405,17 +436,71 @@ export const eliminatePlayer = mutation({
             return { success: true };
         }
 
+        const eliminatedPlayers = [
+            ...match.eliminatedPlayers,
+            {
+                userId: args.userId,
+                wpm: args.wpm,
+                accuracy: args.accuracy,
+                timeInSeconds: args.timeInSeconds,
+                eliminatedAt: Date.now(),
+            },
+        ];
+        const survivingPlayerCount = match.players.length - eliminatedPlayers.length;
+        const winnerId =
+            survivingPlayerCount === 1
+                ? getInstantFailWinner(match.players, eliminatedPlayers)
+                : undefined;
+
         await ctx.db.patch(args.matchId, {
-            eliminatedPlayers: [
-                ...match.eliminatedPlayers,
-                {
-                    userId: args.userId,
-                    wpm: args.wpm,
-                    accuracy: args.accuracy,
-                    timeInSeconds: args.timeInSeconds,
-                    eliminatedAt: Date.now(),
-                },
-            ],
+            eliminatedPlayers,
+            status: winnerId ? "finished" : match.status,
+            winnerId,
+            finishedAt: winnerId ? Date.now() : undefined,
+        });
+
+        return { success: true };
+    },
+});
+
+/** Resets a finished match so the owner can start a fresh round. */
+export const restartMatch = mutation({
+    args: {
+        matchId: v.id("match"),
+        userId: v.id("user"),
+    },
+
+    handler: async (ctx, args) => {
+        const match = await ctx.db.get(args.matchId);
+
+        if (!match) {
+            throw new Error("Match not found");
+        }
+
+        if (match.ownerId !== args.userId) {
+            throw new Error("Only the match owner can restart the match");
+        }
+
+        const playerStates = await ctx.db
+            .query("playerGameState")
+            .withIndex("by_match", (q) => q.eq("matchId", args.matchId))
+            .collect();
+
+        await Promise.all(
+            playerStates.map((playerState) =>
+                ctx.db.patch(playerState._id, {
+                    words: cloneWords(match.words),
+                    updatedAt: Date.now(),
+                }),
+            ),
+        );
+
+        await ctx.db.patch(args.matchId, {
+            status: "waiting",
+            eliminatedPlayers: [],
+            startedAt: undefined,
+            winnerId: undefined,
+            finishedAt: undefined,
         });
 
         return { success: true };

@@ -18,7 +18,7 @@ type EliminatedPlayer = {
 };
 
 type OpponentState = {
-    userId: Id<"user">;
+    userId: string;
     username: string;
     stats: PlayerGameStats;
 };

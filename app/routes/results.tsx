@@ -1,21 +1,17 @@
 import { ConvexHttpClient } from "convex/browser";
-import { redirect, useActionData, useLoaderData, useNavigation, useNavigate } from "react-router";
+import { redirect, useLoaderData, useNavigate, useNavigation } from "react-router";
 import { useQuery } from "convex/react";
 import { useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import type { Id } from "../convex/_generated/dataModel";
-import type { GameMode } from "~/models/gameModes";
+import type { Id } from "~/convex/_generated/dataModel";
 
-import { api } from "../convex/_generated/api";
-import { Play } from "../views/play";
+import { api } from "~/convex/_generated/api";
+import { Results } from "../views/results";
 import { authenticate, getAuthenticatedSession } from "./authenticate";
 
 const convex = new ConvexHttpClient(import.meta.env.VITE_CONVEX_URL as string);
 
-/**
- * Handles authentication and extracts route params.
- * Match data is fetched reactively in the component via useQuery.
- */
+/** Verifies access to the results page and returns the current match context. */
 export async function loader({ request, params }: LoaderFunctionArgs) {
     await authenticate(request);
 
@@ -35,7 +31,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     };
 }
 
-/** Handles starting the match via form submission. */
+/** Handles owner-triggered round restarts from the results screen. */
 export async function action({ request, params }: ActionFunctionArgs) {
     const session = await getAuthenticatedSession(request);
     if (!session) {
@@ -50,16 +46,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
     const formData = await request.formData();
     const intent = formData.get("intent");
 
-    if (intent === "start-match") {
+    if (intent === "restart-match") {
         try {
-            await convex.mutation(api.matches.startMatch, {
-                matchId: gameId as any,
+            await convex.mutation(api.matches.restartMatch, {
+                matchId: gameId as Id<"match">,
                 userId: session.userId,
             });
-            return { success: true };
+
+            return redirect(`/play/${gameId}`);
         } catch (error) {
             return {
-                error: error instanceof Error ? error.message : "Failed to start match",
+                error: error instanceof Error ? error.message : "Failed to restart match",
             };
         }
     }
@@ -69,59 +66,44 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 export default function Page() {
     const { matchId, currentUserId } = useLoaderData<typeof loader>();
-    const actionData = useActionData<typeof action>();
-    const navigation = useNavigation();
     const navigate = useNavigate();
-
-    // Real-time subscription to match data
+    const navigation = useNavigation();
     const match = useQuery(api.matches.getMatchWithPlayers, {
         matchId,
         userId: currentUserId,
     });
-
-    const isSubmitting = navigation.state === "submitting";
-
-    // Redirect to join page if match doesn't exist or is deleted
-    useEffect(() => {
-        if (match === null) {
-            navigate("/join");
-        }
-    }, [match, navigate]);
+    const normalizedStatus = match?.status;
 
     useEffect(() => {
-        if (match?.status === "finished") {
-            navigate(`/results/${matchId}`);
+        if (normalizedStatus && normalizedStatus !== "finished") {
+            navigate(`/play/${matchId}`);
         }
-    }, [match?.status, matchId, navigate]);
+    }, [matchId, navigate, normalizedStatus]);
 
-    // Loading state while waiting for initial query response
     if (match === undefined) {
         return null;
     }
 
-    // Match was deleted/doesn't exist
     if (match === null) {
         return null;
     }
 
-    const isOwner = match.ownerId === currentUserId;
+    if (normalizedStatus === undefined) {
+        return null;
+    }
 
     return (
-        <Play
-            words={match.playerWords ?? match.words}
-            isOwner={isOwner}
-            playerCount={match.playerCount}
-            maxPlayers={match.maxPlayers}
+        <Results
             matchId={match._id}
             currentUserId={currentUserId}
-            gamemode={match.gamemode as GameMode}
+            ownerId={match.ownerId}
+            winnerId={match.winnerId}
             eliminatedPlayers={match.eliminatedPlayers}
-            opponentStates={match.opponentStates}
-            status={match.status}
-            startedAt={match.startedAt}
+            players={match.playerEntries}
             joinCode={match.code}
-            isSubmitting={isSubmitting}
-            actionError={actionData?.error}
+            gamemode={match.gamemode}
+            status={normalizedStatus}
+            isSubmitting={navigation.state === "submitting"}
         />
     );
 }

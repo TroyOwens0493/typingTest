@@ -5,6 +5,7 @@ export default [
     route("signup", "routes/signUp.tsx"),
     route("home", "routes/home.tsx"),
     route("play/:gameId", "routes/play.tsx"),
+    route("results/:gameId", "routes/results.tsx"),
     route("login", "routes/login.tsx"),
     route("practice", "routes/practice.tsx"),
     route("create", "routes/create.tsx"),
