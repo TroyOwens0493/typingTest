@@ -22,6 +22,33 @@ function cloneWords(words: Array<{
     return words.map((word) => ({ ...word }));
 }
 
+/** Builds live stats for a player's in-progress run from their current words. */
+function getLivePlayerStats(
+    words: Array<{
+        text: string;
+        status?: "correct" | "incorrect";
+    }>,
+    timeInSeconds: number,
+) {
+    const evaluatedWords = words.filter((word) => word.status !== undefined);
+    const correctCharacters = evaluatedWords.reduce((total, word) => {
+        if (word.status === "correct") {
+            return total + word.text.length;
+        }
+
+        return total;
+    }, 0);
+    const totalCharacters = evaluatedWords.reduce((total, word) => total + word.text.length, 0);
+    const accuracy = totalCharacters > 0 ? Math.round((correctCharacters / totalCharacters) * 100) : 0;
+    const wpm = timeInSeconds > 0 ? Math.round(correctCharacters / 5 / (timeInSeconds / 60)) : 0;
+
+    return {
+        wpm,
+        accuracy,
+        timeInSeconds,
+    };
+}
+
 /** Fetches a match by its ID. */
 export const getMatch = query({
     args: { matchId: v.id("match") },
@@ -143,10 +170,39 @@ export const getMatchWithPlayers = query({
             )
             .unique();
 
+        const elapsedSeconds = match.startedAt
+            ? Math.max(0, Math.floor((Date.now() - match.startedAt) / 1000))
+            : 0;
+        const opponentIds = match.players.filter((playerId) => playerId !== args.userId);
+        const opponentStates = await Promise.all(
+            opponentIds.map(async (playerId) => {
+                const [player, playerGameStateEntry] = await Promise.all([
+                    ctx.db.get(playerId),
+                    ctx.db
+                        .query("playerGameState")
+                        .withIndex("by_match_user", (q) =>
+                            q.eq("matchId", args.matchId).eq("userId", playerId),
+                        )
+                        .unique(),
+                ]);
+
+                if (!player || !playerGameStateEntry) {
+                    return null;
+                }
+
+                return {
+                    userId: playerId,
+                    username: player.username,
+                    stats: getLivePlayerStats(playerGameStateEntry.words, elapsedSeconds),
+                };
+            }),
+        );
+
         return {
             ...match,
             playerCount: match.players.length,
             playerWords: playerGameState?.words,
+            opponentStates: opponentStates.filter((opponentState) => opponentState !== null),
         };
     },
 });

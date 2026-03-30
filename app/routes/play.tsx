@@ -110,6 +110,7 @@ export default function Page() {
             currentUserId={currentUserId}
             gamemode={match.gamemode as GameMode}
             eliminatedPlayers={match.eliminatedPlayers}
+            opponentStates={match.opponentStates}
             status={match.status}
             startedAt={match.startedAt}
             joinCode={match.code}
