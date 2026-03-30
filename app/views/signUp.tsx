@@ -181,7 +181,7 @@ export function SignUp() {
                             <Panel.Rows>
                                 <Panel.Row
                                     label="BATTLE FORMATS"
-                                    value="Elimination, points, and instant-fail modes"
+                                    value="Time and instant-fail modes"
                                 />
                                 <Panel.Row
                                     label="PRIVATE LOBBIES"

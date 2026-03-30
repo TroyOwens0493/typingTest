@@ -1,4 +1,4 @@
-export type GameMode = "elimination" | "points" | "instant-fail";
+export type GameMode = "time" | "instant-fail";
 
 export type GameModeOption = {
     id: GameMode;
@@ -9,16 +9,10 @@ export type GameModeOption = {
 
 export const GAME_MODES = [
     {
-        id: "elimination",
-        label: "ELIM",
-        description: "Players are eliminated each round until one remains.",
-        tag: "LAST ONE STANDING",
-    },
-    {
-        id: "points",
-        label: "POINTS",
-        description: "Earn points for speed and accuracy across rounds.",
-        tag: "HIGHEST SCORE WINS",
+        id: "time",
+        label: "TIME",
+        description: "At timeout, the slowest players are eliminated.",
+        tag: "SURVIVE THE CLOCK",
     },
     {
         id: "instant-fail",
