@@ -49,6 +49,48 @@ function getLivePlayerStats(
     };
 }
 
+/** Orders opponents for the live stats panel based on the current match mode. */
+function sortOpponentStates(
+    opponentStates: Array<{
+        userId: string;
+        username: string;
+        stats: {
+            wpm: number;
+            accuracy: number;
+            timeInSeconds: number;
+        };
+    }>,
+    gamemode: string,
+) {
+    return [...opponentStates].sort((left, right) => {
+        if (gamemode === "instant-fail") {
+            if (right.stats.timeInSeconds !== left.stats.timeInSeconds) {
+                return right.stats.timeInSeconds - left.stats.timeInSeconds;
+            }
+
+            if (right.stats.wpm !== left.stats.wpm) {
+                return right.stats.wpm - left.stats.wpm;
+            }
+
+            return left.username.localeCompare(right.username);
+        }
+
+        if (right.stats.wpm !== left.stats.wpm) {
+            return right.stats.wpm - left.stats.wpm;
+        }
+
+        if (right.stats.accuracy !== left.stats.accuracy) {
+            return right.stats.accuracy - left.stats.accuracy;
+        }
+
+        if (left.stats.timeInSeconds !== right.stats.timeInSeconds) {
+            return left.stats.timeInSeconds - right.stats.timeInSeconds;
+        }
+
+        return left.username.localeCompare(right.username);
+    });
+}
+
 /** Fetches a match by its ID. */
 export const getMatch = query({
     args: { matchId: v.id("match") },
@@ -208,11 +250,16 @@ export const getMatchWithPlayers = query({
             }),
         );
 
+        const rankedOpponentStates = sortOpponentStates(
+            opponentStates.filter((opponentState) => opponentState !== null),
+            match.gamemode,
+        ).slice(0, 3);
+
         return {
             ...match,
             playerCount: match.players.length,
             playerWords: playerGameState?.words,
-            opponentStates: opponentStates.filter((opponentState) => opponentState !== null),
+            opponentStates: rankedOpponentStates,
         };
     },
 });
