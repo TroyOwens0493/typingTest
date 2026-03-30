@@ -248,7 +248,7 @@ function PlayerStepper({
    ═══════════════════════════════════════════════════════ */
 /** Renders the create-match form and submits the selected configuration. */
 export function Create({ actionData }: CreateProps) {
-    const [gameMode, setGameMode] = useState<GameMode>("elimination");
+    const [gameMode, setGameMode] = useState<GameMode>("time");
     const [playerCount, setPlayerCount] = useState(8);
     const [difficulty, setDifficulty] = useState<Difficulty>("medium");
     const [visibility, setVisibility] = useState<Visibility>("private");
@@ -308,7 +308,7 @@ export function Create({ actionData }: CreateProps) {
                                 <p className="mb-5 text-[9px] tracking-[0.3em] text-neutral-700">
                                     GAME MODE
                                 </p>
-                                <div className="grid gap-3 sm:grid-cols-3">
+                                <div className="grid gap-3 sm:grid-cols-2">
                                     {GAME_MODES.map((mode) => (
                                         <ModeCard
                                             key={mode.id}

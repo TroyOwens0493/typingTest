@@ -109,6 +109,8 @@ type TypingTestComponentProps = {
     unfocusedMessage?: string;
     /** When false, focus can only be changed by the unfocusedMessage prop, not by user interaction (click/Enter) */
     allowFocusChange?: boolean;
+    /** Optional external timer start timestamp (ms since epoch), used for synchronized match timers. */
+    timerStartTime?: number;
 };
 
 const VISIBLE_LINE_COUNT = 5;
@@ -137,7 +139,12 @@ function getVisibleWordWindow(words: TypingWord[], activeIndex: number) {
     };
 }
 
-export function TypingTestComponent({ words, unfocusedMessage, allowFocusChange = true }: TypingTestComponentProps) {
+export function TypingTestComponent({
+    words,
+    unfocusedMessage,
+    allowFocusChange = true,
+    timerStartTime,
+}: TypingTestComponentProps) {
     // Tracks whether the typing surface is focused for input.
     // If unfocusedMessage is provided, start unfocused.
     const [isFocused, setIsFocused] = useState(!unfocusedMessage);
@@ -153,6 +160,13 @@ export function TypingTestComponent({ words, unfocusedMessage, allowFocusChange 
     const [activeWords, setActiveWords] = useState(words);
     // Whether the typing test has been completed.
     const [isComplete, setIsComplete] = useState(false);
+    // Effective timer start timestamp, preferring external match start time when provided.
+    const effectiveStartTime = timerStartTime ?? startTime;
+
+    // Keep focus state in sync with external unfocused message changes.
+    useEffect(() => {
+        setIsFocused(!unfocusedMessage);
+    }, [unfocusedMessage]);
 
     /** Derives the currently active word index from the rendered typing state. */
     const activeWordIndex = useMemo(() => {
@@ -206,14 +220,14 @@ export function TypingTestComponent({ words, unfocusedMessage, allowFocusChange 
                     return prev;
                 }
 
-                if (prev === "" && startTime === 0 && !isWhitespace) {
+                if (prev === "" && startTime === 0 && timerStartTime === undefined && !isWhitespace) {
                     setStartTime(Date.now());
                 }
                 nextTyped = `${prev}${eventValue}`;
             }
             return nextTyped;
         });
-    }, [isFocused, isComplete, startTime, resetTypingState, allowFocusChange]);
+    }, [isFocused, isComplete, startTime, resetTypingState, allowFocusChange, timerStartTime]);
 
     // Recompute word states whenever typed input changes.
     useEffect(() => {
@@ -272,6 +286,16 @@ export function TypingTestComponent({ words, unfocusedMessage, allowFocusChange 
         setIsComplete(false);
     }, [words]);
 
+    // Recompute displayed elapsed time when using an external synchronized timer.
+    useEffect(() => {
+        if (timerStartTime === undefined || isComplete) {
+            return;
+        }
+
+        const elapsedSeconds = Math.max(0, Math.floor((Date.now() - timerStartTime) / 1000));
+        setTimerInSeconds(elapsedSeconds);
+    }, [timerStartTime, isComplete]);
+
     // Register global keydown handler for typing input.
     useEffect(() => {
         function handleKeyDown(e: KeyboardEvent) {
@@ -292,13 +316,13 @@ export function TypingTestComponent({ words, unfocusedMessage, allowFocusChange 
 
     // Start/stop the interval that updates elapsed time.
     useEffect(() => {
-        if (startTime === 0 || isComplete) return;
+        if (effectiveStartTime === 0 || isComplete) return;
         const id = setInterval(() => {
-            const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            const elapsedSeconds = Math.max(0, Math.floor((Date.now() - effectiveStartTime) / 1000));
             setTimerInSeconds(elapsedSeconds);
         }, 1000);
         return () => clearInterval(id);
-    }, [startTime, isComplete]);
+    }, [effectiveStartTime, isComplete]);
 
     return (
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 lg:px-12">

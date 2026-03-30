@@ -13,6 +13,7 @@ type PlayProps = {
     matchId: Id<"match">;
     currentUserId: Id<"user">;
     status: "waiting" | "playing" | "finished";
+    startedAt?: number;
     joinCode: string;
     isSubmitting?: boolean;
     actionError?: string;
@@ -24,6 +25,7 @@ export function Play({
     playerCount,
     maxPlayers,
     status,
+    startedAt,
     joinCode,
     isSubmitting,
     actionError,
@@ -49,6 +51,7 @@ export function Play({
                         words={words}
                         unfocusedMessage={showLobby ? "WAIT FOR HOST TO START THE ROUND" : undefined}
                         allowFocusChange={false}
+                        timerStartTime={startedAt}
                     />
                 </div>
 
