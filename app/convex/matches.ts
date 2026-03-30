@@ -190,10 +190,20 @@ export const getMatchWithPlayers = query({
                     return null;
                 }
 
+                const eliminatedPlayer = match.eliminatedPlayers.find(
+                    (eliminatedEntry) => eliminatedEntry.userId === playerId,
+                );
+
                 return {
                     userId: playerId,
                     username: player.username,
-                    stats: getLivePlayerStats(playerGameStateEntry.words, elapsedSeconds),
+                    stats: eliminatedPlayer
+                        ? {
+                              wpm: eliminatedPlayer.wpm,
+                              accuracy: eliminatedPlayer.accuracy,
+                              timeInSeconds: eliminatedPlayer.timeInSeconds,
+                          }
+                        : getLivePlayerStats(playerGameStateEntry.words, elapsedSeconds),
                 };
             }),
         );
