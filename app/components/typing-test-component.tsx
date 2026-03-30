@@ -115,6 +115,8 @@ type TypingTestComponentProps = {
     instantFailEnabled?: boolean;
     /** Called once when the player gets eliminated. */
     onEliminated?: (stats: PlayerGameStats) => Promise<void> | void;
+    /** Called when the player completes a word and the active word advances. */
+    onWordBoundary?: (words: TypingWord[]) => Promise<void> | void;
     /** Existing elimination result to restore from match state. */
     initialEliminatedStats?: PlayerGameStats;
 };
@@ -198,6 +200,7 @@ export function TypingTestComponent({
     timerStartTime,
     instantFailEnabled = false,
     onEliminated,
+    onWordBoundary,
     initialEliminatedStats,
 }: TypingTestComponentProps) {
     // Tracks whether the typing surface is focused for input.
@@ -222,6 +225,7 @@ export function TypingTestComponent({
         initialEliminatedStats,
     );
     const hasReportedElimination = useRef(Boolean(initialEliminatedStats));
+    const lastSyncedWordIndex = useRef(0);
     // Effective timer start timestamp, preferring external match start time when provided.
     const effectiveStartTime = timerStartTime ?? startTime;
 
@@ -261,6 +265,7 @@ export function TypingTestComponent({
         setIsEliminated(false);
         setEliminatedStats(undefined);
         hasReportedElimination.current = false;
+        lastSyncedWordIndex.current = 0;
         setIsFocused(true);
     }, [words]);
 
@@ -383,10 +388,27 @@ export function TypingTestComponent({
         });
     }, [typed]);
 
+    /** Persists the player's latest state whenever they advance to a new word. */
+    useEffect(() => {
+        if (!onWordBoundary || isComplete || isEliminated) {
+            return;
+        }
+
+        const completedWordCount = activeWords.filter((word) => word.status !== undefined).length;
+
+        if (completedWordCount <= lastSyncedWordIndex.current) {
+            return;
+        }
+
+        lastSyncedWordIndex.current = completedWordCount;
+        void Promise.resolve(onWordBoundary(activeWords));
+    }, [activeWords, isComplete, isEliminated, onWordBoundary]);
+
     // Refresh active words when the word list prop changes.
     useEffect(() => {
         setActiveWords(words);
         setIsComplete(false);
+        lastSyncedWordIndex.current = words.filter((word) => word.status !== undefined).length;
     }, [words]);
 
     // Restores elimination state from persisted match data.

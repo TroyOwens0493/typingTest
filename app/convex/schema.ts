@@ -56,6 +56,23 @@ export default defineSchema({
             }),
         ),
     }).index("by_code", ["code"]),
+    playerGameState: defineTable({
+        matchId: v.id("match"),
+        userId: v.id("user"),
+        words: v.array(
+            v.object({
+                text: v.string(),
+                state: v.union(v.literal("pending"), v.literal("active")),
+                status: v.optional(
+                    v.union(v.literal("correct"), v.literal("incorrect")),
+                ),
+                typed: v.optional(v.string()),
+            }),
+        ),
+        updatedAt: v.number(),
+    })
+        .index("by_match", ["matchId"])
+        .index("by_match_user", ["matchId", "userId"]),
     sessions: defineTable({
         userId: v.id("user"),
         tokenHash: v.string(),

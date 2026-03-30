@@ -5,6 +5,23 @@ import { mutation, query } from "./_generated/server";
 const MATCH_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const MATCH_CODE_LENGTH = 6;
 
+const typingWordValidator = v.object({
+    text: v.string(),
+    state: v.union(v.literal("pending"), v.literal("active")),
+    status: v.optional(v.union(v.literal("correct"), v.literal("incorrect"))),
+    typed: v.optional(v.string()),
+});
+
+/** Creates a fresh per-player word-state copy from the match seed words. */
+function cloneWords(words: Array<{
+    text: string;
+    state: "pending" | "active";
+    status?: "correct" | "incorrect";
+    typed?: string;
+}>) {
+    return words.map((word) => ({ ...word }));
+}
+
 /** Fetches a match by its ID. */
 export const getMatch = query({
     args: { matchId: v.id("match") },
@@ -29,16 +46,7 @@ export const createMatch = mutation({
         maxPlayers: v.number(),
         difficulty: v.string(),
         visibility: v.string(),
-        words: v.array(
-            v.object({
-                text: v.string(),
-                state: v.union(v.literal("pending"), v.literal("active")),
-                status: v.optional(
-                    v.union(v.literal("correct"), v.literal("incorrect")),
-                ),
-                typed: v.optional(v.string()),
-            }),
-        ),
+        words: v.array(typingWordValidator),
     },
 
     handler: async (ctx, args) => {
@@ -67,6 +75,13 @@ export const createMatch = mutation({
             players: [args.ownerId],
             eliminatedPlayers: [],
             words: args.words,
+        });
+
+        await ctx.db.insert("playerGameState", {
+            matchId,
+            userId: args.ownerId,
+            words: cloneWords(args.words),
+            updatedAt: Date.now(),
         });
 
         return {
@@ -109,7 +124,10 @@ export const startMatch = mutation({
 
 /** Gets a match with player count and owner details. */
 export const getMatchWithPlayers = query({
-    args: { matchId: v.id("match") },
+    args: {
+        matchId: v.id("match"),
+        userId: v.id("user"),
+    },
 
     handler: async (ctx, args) => {
         const match = await ctx.db.get(args.matchId);
@@ -118,9 +136,17 @@ export const getMatchWithPlayers = query({
             return null;
         }
 
+        const playerGameState = await ctx.db
+            .query("playerGameState")
+            .withIndex("by_match_user", (q) =>
+                q.eq("matchId", args.matchId).eq("userId", args.userId),
+            )
+            .unique();
+
         return {
             ...match,
             playerCount: match.players.length,
+            playerWords: playerGameState?.words,
         };
     },
 });
@@ -181,6 +207,52 @@ export const joinMatch = mutation({
 
         await ctx.db.patch(args.matchId, {
             players: [...match.players, args.userId],
+        });
+
+        await ctx.db.insert("playerGameState", {
+            matchId: args.matchId,
+            userId: args.userId,
+            words: cloneWords(match.words),
+            updatedAt: Date.now(),
+        });
+
+        return { success: true };
+    },
+});
+
+/** Persists the latest word-state snapshot for a player in an active match. */
+export const updatePlayerGameState = mutation({
+    args: {
+        matchId: v.id("match"),
+        userId: v.id("user"),
+        words: v.array(typingWordValidator),
+    },
+
+    handler: async (ctx, args) => {
+        const match = await ctx.db.get(args.matchId);
+
+        if (!match) {
+            throw new Error("Match not found");
+        }
+
+        if (!match.players.includes(args.userId)) {
+            throw new Error("Player is not in this match");
+        }
+
+        const playerGameState = await ctx.db
+            .query("playerGameState")
+            .withIndex("by_match_user", (q) =>
+                q.eq("matchId", args.matchId).eq("userId", args.userId),
+            )
+            .unique();
+
+        if (!playerGameState) {
+            throw new Error("Player game state not found");
+        }
+
+        await ctx.db.patch(playerGameState._id, {
+            words: cloneWords(args.words),
+            updatedAt: Date.now(),
         });
 
         return { success: true };

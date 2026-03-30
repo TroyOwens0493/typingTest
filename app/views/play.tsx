@@ -50,6 +50,7 @@ export function Play({
 }: PlayProps) {
     const showLobby = status === "waiting";
     const eliminatePlayer = useMutation(api.matches.eliminatePlayer);
+    const updatePlayerGameState = useMutation(api.matches.updatePlayerGameState);
 
     const currentPlayerElimination = eliminatedPlayers.find(
         (player) => player.userId === currentUserId,
@@ -71,6 +72,18 @@ export function Play({
             });
         },
         [currentPlayerElimination, currentUserId, eliminatePlayer, gamemode, matchId],
+    );
+
+    /** Persists the current player's latest word snapshot at each word boundary. */
+    const handleWordBoundary = useCallback(
+        async (nextWords: TypingWord[]) => {
+            await updatePlayerGameState({
+                matchId,
+                userId: currentUserId,
+                words: nextWords,
+            });
+        },
+        [currentUserId, matchId, updatePlayerGameState],
     );
 
     return (
@@ -95,6 +108,7 @@ export function Play({
                         timerStartTime={startedAt}
                         instantFailEnabled={gamemode === "instant-fail" && status === "playing"}
                         onEliminated={handlePlayerEliminated}
+                        onWordBoundary={handleWordBoundary}
                         initialEliminatedStats={
                             currentPlayerElimination
                                 ? {

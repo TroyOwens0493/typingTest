@@ -74,7 +74,10 @@ export default function Page() {
     const navigate = useNavigate();
 
     // Real-time subscription to match data
-    const match = useQuery(api.matches.getMatchWithPlayers, { matchId });
+    const match = useQuery(api.matches.getMatchWithPlayers, {
+        matchId,
+        userId: currentUserId,
+    });
 
     const isSubmitting = navigation.state === "submitting";
 
@@ -99,7 +102,7 @@ export default function Page() {
 
     return (
         <Play
-            words={match.words}
+            words={match.playerWords ?? match.words}
             isOwner={isOwner}
             playerCount={match.playerCount}
             maxPlayers={match.maxPlayers}
