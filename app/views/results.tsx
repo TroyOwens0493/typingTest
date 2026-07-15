@@ -34,17 +34,16 @@ type ResultsProps = {
     isSubmitting: boolean;
 };
 
-/** Builds the placement list with the surviving winner first. */
+/** Builds the placement list from ranked results, with an elimination-order fallback. */
 function getPlacements({
     players,
     winnerId,
     eliminatedPlayers,
     results,
-    gamemode,
-}: Pick<ResultsProps, "players" | "winnerId" | "eliminatedPlayers" | "results" | "gamemode">) {
+}: Pick<ResultsProps, "players" | "winnerId" | "eliminatedPlayers" | "results">) {
     const playerLookup = new Map(players.map((player) => [player.userId, player.username]));
 
-    if (gamemode === "time" && results) {
+    if (results) {
         return results.map((player, index) => ({
             userId: player.userId,
             username: playerLookup.get(player.userId) ?? "Unknown player",
@@ -92,7 +91,7 @@ export function Results({
     status,
     isSubmitting,
 }: ResultsProps) {
-    const placements = getPlacements({ players, winnerId, eliminatedPlayers, results, gamemode });
+    const placements = getPlacements({ players, winnerId, eliminatedPlayers, results });
     const isOwner = ownerId === currentUserId;
     const didCurrentUserWin = winnerId === currentUserId;
     const winnerName = players.find((player) => player.userId === winnerId)?.username;
@@ -168,7 +167,7 @@ export function Results({
                                     value={
                                         gamemode === "time"
                                             ? `${TIME_MODE_DURATION_SECONDS} SECOND SPRINT`
-                                            : "LAST PLAYER STANDING"
+                                            : "INSTANT FAIL"
                                     }
                                 />
                             </Panel.Rows>

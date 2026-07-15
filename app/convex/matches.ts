@@ -4,7 +4,7 @@ import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { TIME_MODE_DURATION_SECONDS } from "../models/gameModes";
-import { calculatePlayerStats } from "../models/gameScoring";
+import { calculatePlayerStats, compareRankedPlayerStats } from "../models/gameScoring";
 
 const MATCH_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const MATCH_CODE_LENGTH = 6;
@@ -76,7 +76,7 @@ function validatePlayerWords(
     });
 }
 
-/** Orders opponents for the live stats panel based on the current match mode. */
+/** Orders opponents for the live stats panel using the final-results scoring rules. */
 function sortOpponentStates(
     opponentStates: Array<{
         userId: string;
@@ -87,35 +87,13 @@ function sortOpponentStates(
             timeInSeconds: number;
         };
     }>,
-    gamemode: string,
 ) {
-    return [...opponentStates].sort((left, right) => {
-        if (gamemode === "instant-fail") {
-            if (right.stats.timeInSeconds !== left.stats.timeInSeconds) {
-                return right.stats.timeInSeconds - left.stats.timeInSeconds;
-            }
-
-            if (right.stats.wpm !== left.stats.wpm) {
-                return right.stats.wpm - left.stats.wpm;
-            }
-
-            return left.username.localeCompare(right.username);
-        }
-
-        if (right.stats.wpm !== left.stats.wpm) {
-            return right.stats.wpm - left.stats.wpm;
-        }
-
-        if (right.stats.accuracy !== left.stats.accuracy) {
-            return right.stats.accuracy - left.stats.accuracy;
-        }
-
-        if (left.stats.timeInSeconds !== right.stats.timeInSeconds) {
-            return left.stats.timeInSeconds - right.stats.timeInSeconds;
-        }
-
-        return left.username.localeCompare(right.username);
-    });
+    return [...opponentStates].sort((left, right) =>
+        compareRankedPlayerStats(
+            { userId: left.userId, ...left.stats },
+            { userId: right.userId, ...right.stats },
+        ),
+    );
 }
 
 /** Resolves the surviving winner in instant-fail mode once one player remains. */
@@ -304,7 +282,6 @@ export const getMatchWithPlayers = query({
 
         const rankedOpponentStates = sortOpponentStates(
             opponentStates.filter((opponentState) => opponentState !== null),
-            match.gamemode,
         ).slice(0, 3);
 
         const playerEntries = await Promise.all(
@@ -488,11 +465,7 @@ export const finishTimeMatch = internalMutation({
                     TIME_MODE_DURATION_SECONDS,
                 ),
             }))
-            .sort((left, right) => {
-                if (right.wpm !== left.wpm) return right.wpm - left.wpm;
-                if (right.accuracy !== left.accuracy) return right.accuracy - left.accuracy;
-                return left.userId.localeCompare(right.userId);
-            });
+            .sort(compareRankedPlayerStats);
 
         await ctx.db.patch(args.matchId, {
             status: "finished",
@@ -549,16 +522,51 @@ export const eliminatePlayer = mutation({
             },
         ];
         const survivingPlayerCount = match.players.length - eliminatedPlayers.length;
-        const winnerId =
+        const lastPlayerStanding =
             survivingPlayerCount === 1
                 ? getInstantFailWinner(match.players, eliminatedPlayers)
                 : undefined;
+        let results;
+
+        if (lastPlayerStanding) {
+            const survivorState = await ctx.db
+                .query("playerGameState")
+                .withIndex("by_match_user", (q) =>
+                    q.eq("matchId", args.matchId).eq("userId", lastPlayerStanding),
+                )
+                .unique();
+            const elapsedSeconds = match.startedAt
+                ? Math.max(0, Math.floor((Date.now() - match.startedAt) / 1000))
+                : 0;
+            const survivorStats = calculatePlayerStats(survivorState?.words ?? [], elapsedSeconds);
+            const eliminatedStatsByUserId = new Map(
+                eliminatedPlayers.map((player) => [player.userId, player]),
+            );
+
+            results = match.players
+                .map((userId) => {
+                    const eliminatedPlayer = eliminatedStatsByUserId.get(userId);
+
+                    return eliminatedPlayer
+                        ? {
+                              userId,
+                              wpm: eliminatedPlayer.wpm,
+                              accuracy: eliminatedPlayer.accuracy,
+                              timeInSeconds: eliminatedPlayer.timeInSeconds,
+                          }
+                        : { userId, ...survivorStats };
+                })
+                .sort(compareRankedPlayerStats);
+        }
+
+        const winnerId = results?.[0]?.userId;
 
         await ctx.db.patch(args.matchId, {
             eliminatedPlayers,
             status: winnerId ? "finished" : match.status,
             winnerId,
             finishedAt: winnerId ? Date.now() : undefined,
+            results,
         });
 
         return { success: true };

@@ -1,5 +1,17 @@
 import type { PlayerGameStats, TypingWord } from "./typingTypes";
 
+export type RankedPlayerGameStats = PlayerGameStats & { userId: string };
+
+/** Orders final match results by WPM, accuracy, then a stable player ID tie-breaker. */
+export function compareRankedPlayerStats(
+    left: RankedPlayerGameStats,
+    right: RankedPlayerGameStats,
+) {
+    if (right.wpm !== left.wpm) return right.wpm - left.wpm;
+    if (right.accuracy !== left.accuracy) return right.accuracy - left.accuracy;
+    return left.userId.localeCompare(right.userId);
+}
+
 /** Calculates a player's stats from completed words using standard five-character WPM. */
 export function calculatePlayerStats(
     words: Pick<TypingWord, "text" | "status">[],
