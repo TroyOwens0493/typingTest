@@ -150,7 +150,7 @@ function getUpdatedUserStats({
 }
 
 /** Persists completed-match stat history and aggregate updates for each player once. */
-async function finalizeInstantFailMatch({
+async function finalizeCompletedMatch({
     ctx,
     matchId,
     gamemode,
@@ -560,11 +560,20 @@ export const finishTimeMatch = internalMutation({
                 ),
             }))
             .sort(compareRankedPlayerStats);
+        const finishedAt = args.startedAt + TIME_MODE_DURATION_SECONDS * 1000;
+
+        await finalizeCompletedMatch({
+            ctx,
+            matchId: args.matchId,
+            gamemode: match.gamemode,
+            results,
+            finishedAt,
+        });
 
         await ctx.db.patch(args.matchId, {
             status: "finished",
             winnerId: results[0]?.userId,
-            finishedAt: args.startedAt + TIME_MODE_DURATION_SECONDS * 1000,
+            finishedAt,
             results,
         });
 
@@ -657,7 +666,7 @@ export const eliminatePlayer = mutation({
         const finishedAt = winnerId ? Date.now() : undefined;
 
         if (results && winnerId && finishedAt !== undefined) {
-            await finalizeInstantFailMatch({
+            await finalizeCompletedMatch({
                 ctx,
                 matchId: args.matchId,
                 gamemode: match.gamemode,
