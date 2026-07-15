@@ -7,6 +7,7 @@ import { useCallback } from "react";
 import { api } from "~/convex/_generated/api";
 import type { Id } from "~/convex/_generated/dataModel";
 import type { GameMode } from "~/models/gameModes";
+import { TIME_MODE_DURATION_SECONDS } from "~/models/gameModes";
 import type { PlayerGameStats, TypingWord } from "~/models/typingTypes";
 
 type EliminatedPlayer = {
@@ -168,6 +169,11 @@ export function Play({
                         unfocusedMessage={showLobby ? "WAIT FOR HOST TO START THE ROUND" : undefined}
                         allowFocusChange={false}
                         timerStartTime={startedAt}
+                        timerDurationSeconds={
+                            gamemode === "time" && status === "playing"
+                                ? TIME_MODE_DURATION_SECONDS
+                                : undefined
+                        }
                         instantFailEnabled={gamemode === "instant-fail" && status === "playing"}
                         onEliminated={handlePlayerEliminated}
                         onWordBoundary={handleWordBoundary}

@@ -99,6 +99,7 @@ export default function Page() {
             ownerId={match.ownerId}
             winnerId={match.winnerId}
             eliminatedPlayers={match.eliminatedPlayers}
+            results={match.results}
             players={match.playerEntries}
             joinCode={match.code}
             gamemode={match.gamemode}

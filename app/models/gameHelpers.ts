@@ -1,5 +1,6 @@
 import type { TypingWord, Difficulties } from "~/models/typingTypes";
 import { WORD_BANKS } from "./wordbanks";
+import { calculatePlayerStats } from "./gameScoring";
 
 
 const ACTIVE_WORD_OBJ = { text: "", state: "active", typed: "" } as TypingWord;
@@ -11,16 +12,7 @@ export function calculateAccuracy({
 }: {
     words: TypingWord[];
 }) {
-    const numberCorrect = words.filter((word) => word.status === "correct").length;
-    const numberTyped =
-        words.filter((word) => word.status === "incorrect").length + numberCorrect;
-
-    const percentage = Math.floor((numberCorrect / numberTyped) * 100);
-    if (Number.isNaN(percentage)) {
-        return 0;
-    } else {
-        return percentage;
-    }
+    return calculatePlayerStats(words, 0).accuracy;
 }
 
 /** Calculates words per minute from correct words and elapsed time. */
@@ -31,14 +23,7 @@ export function calculateWpm({
     words: TypingWord[];
     timeInSeconds: number;
 }) {
-    const minutes = timeInSeconds / 60;
-    const correctWords = words.filter((word) => word.status === "correct").length;
-    const res = Math.floor(correctWords / minutes);
-    if (!Number.isFinite(res) || Number.isNaN(res)) {
-        return 0;
-    } else {
-        return res;
-    }
+    return calculatePlayerStats(words, timeInSeconds).wpm;
 }
 
 /** Converts a list of raw words into tracked typing word objects. */

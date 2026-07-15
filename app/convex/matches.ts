@@ -1,8 +1,11 @@
 import { v } from "convex/values";
 
+import { internal } from "./_generated/api";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
-import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { TIME_MODE_DURATION_SECONDS } from "../models/gameModes";
+import { calculatePlayerStats, compareRankedPlayerStats } from "../models/gameScoring";
 
 const MATCH_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const MATCH_CODE_LENGTH = 6;
@@ -24,34 +27,57 @@ function cloneWords(words: Array<{
     return words.map((word) => ({ ...word }));
 }
 
-/** Builds live stats for a player's in-progress run from their current words. */
-function getLivePlayerStats(
+/** Rejects malformed client snapshots before they can influence live or final scores. */
+function validatePlayerWords(
+    seedWords: Array<{ text: string }>,
     words: Array<{
         text: string;
+        state: "pending" | "active";
         status?: "correct" | "incorrect";
+        typed?: string;
     }>,
-    timeInSeconds: number,
 ) {
-    const evaluatedWords = words.filter((word) => word.status !== undefined);
-    const correctCharacters = evaluatedWords.reduce((total, word) => {
-        if (word.status === "correct") {
-            return total + word.text.length;
+    if (words.length !== seedWords.length) {
+        throw new Error("Invalid player word state");
+    }
+
+    const activeIndexes = words.flatMap((word, index) =>
+        word.state === "active" ? [index] : [],
+    );
+    const activeIndex = activeIndexes[0] ?? words.length;
+
+    if (activeIndexes.length > 1) {
+        throw new Error("Invalid player word state");
+    }
+
+    words.forEach((word, index) => {
+        if (word.text !== seedWords[index]?.text || typeof word.typed !== "string") {
+            throw new Error("Invalid player word state");
         }
 
-        return total;
-    }, 0);
-    const totalCharacters = evaluatedWords.reduce((total, word) => total + word.text.length, 0);
-    const accuracy = totalCharacters > 0 ? Math.round((correctCharacters / totalCharacters) * 100) : 0;
-    const wpm = timeInSeconds > 0 ? Math.round(correctCharacters / 5 / (timeInSeconds / 60)) : 0;
+        if (index < activeIndex) {
+            const expectedStatus = word.typed === word.text ? "correct" : "incorrect";
+            if (word.state !== "pending" || word.status !== expectedStatus) {
+                throw new Error("Invalid player word state");
+            }
+            return;
+        }
 
-    return {
-        wpm,
-        accuracy,
-        timeInSeconds,
-    };
+        if (index === activeIndex && activeIndex < words.length) {
+            const expectedStatus = word.text.startsWith(word.typed) ? undefined : "incorrect";
+            if (word.status !== expectedStatus) {
+                throw new Error("Invalid player word state");
+            }
+            return;
+        }
+
+        if (word.state !== "pending" || word.status !== undefined || word.typed !== "") {
+            throw new Error("Invalid player word state");
+        }
+    });
 }
 
-/** Orders opponents for the live stats panel based on the current match mode. */
+/** Orders opponents for the live stats panel using the final-results scoring rules. */
 function sortOpponentStates(
     opponentStates: Array<{
         userId: string;
@@ -62,35 +88,13 @@ function sortOpponentStates(
             timeInSeconds: number;
         };
     }>,
-    gamemode: string,
 ) {
-    return [...opponentStates].sort((left, right) => {
-        if (gamemode === "instant-fail") {
-            if (right.stats.timeInSeconds !== left.stats.timeInSeconds) {
-                return right.stats.timeInSeconds - left.stats.timeInSeconds;
-            }
-
-            if (right.stats.wpm !== left.stats.wpm) {
-                return right.stats.wpm - left.stats.wpm;
-            }
-
-            return left.username.localeCompare(right.username);
-        }
-
-        if (right.stats.wpm !== left.stats.wpm) {
-            return right.stats.wpm - left.stats.wpm;
-        }
-
-        if (right.stats.accuracy !== left.stats.accuracy) {
-            return right.stats.accuracy - left.stats.accuracy;
-        }
-
-        if (left.stats.timeInSeconds !== right.stats.timeInSeconds) {
-            return left.stats.timeInSeconds - right.stats.timeInSeconds;
-        }
-
-        return left.username.localeCompare(right.username);
-    });
+    return [...opponentStates].sort((left, right) =>
+        compareRankedPlayerStats(
+            { userId: left.userId, ...left.stats },
+            { userId: right.userId, ...right.stats },
+        ),
+    );
 }
 
 /** Resolves the surviving winner in instant-fail mode once one player remains. */
@@ -113,52 +117,6 @@ type FinalPlayerStats = {
     place: number;
     result: "WIN" | "LOSS";
 };
-
-/** Builds final stats for each player once an instant-fail match finishes. */
-function getInstantFailFinalPlayerStats({
-    players,
-    eliminatedPlayers,
-    winnerId,
-    finishedAt,
-    startedAt,
-}: {
-    players: Id<"user">[];
-    eliminatedPlayers: Array<{
-        userId: Id<"user">;
-        wpm: number;
-        accuracy: number;
-        timeInSeconds: number;
-        eliminatedAt: number;
-    }>;
-    winnerId: Id<"user">;
-    finishedAt: number;
-    startedAt?: number;
-}) {
-    const placementStats: FinalPlayerStats[] = [
-        {
-            userId: winnerId,
-            wpm: 0,
-            accuracy: 100,
-            timeInSeconds: startedAt ? Math.max(0, Math.floor((finishedAt - startedAt) / 1000)) : 0,
-            place: 1,
-            result: "WIN",
-        },
-        ...[...eliminatedPlayers]
-            .sort((left, right) => right.eliminatedAt - left.eliminatedAt)
-            .map((player, index) => ({
-                userId: player.userId,
-                wpm: player.wpm,
-                accuracy: player.accuracy,
-                timeInSeconds: player.timeInSeconds,
-                place: index + 2,
-                result: "LOSS" as const,
-            })),
-    ];
-
-    return players
-        .map((playerId) => placementStats.find((player) => player.userId === playerId))
-        .filter((player): player is FinalPlayerStats => player !== undefined);
-}
 
 /** Applies aggregate stat updates for a user's newly finished match. */
 function getUpdatedUserStats({
@@ -192,38 +150,31 @@ function getUpdatedUserStats({
 }
 
 /** Persists completed-match stat history and aggregate updates for each player once. */
-async function finalizeInstantFailMatch({
+async function finalizeCompletedMatch({
     ctx,
     matchId,
-    players,
     gamemode,
-    eliminatedPlayers,
+    results,
     winnerId,
-    startedAt,
     finishedAt,
 }: {
     ctx: MutationCtx;
     matchId: Id<"match">;
-    players: Id<"user">[];
     gamemode: string;
-    eliminatedPlayers: Array<{
+    results: Array<{
         userId: Id<"user">;
         wpm: number;
         accuracy: number;
         timeInSeconds: number;
-        eliminatedAt: number;
     }>;
-    winnerId: Id<"user">;
-    startedAt?: number;
+    winnerId?: Id<"user">;
     finishedAt: number;
 }) {
-    const finalPlayerStats = getInstantFailFinalPlayerStats({
-        players,
-        eliminatedPlayers,
-        winnerId,
-        finishedAt,
-        startedAt,
-    });
+    const finalPlayerStats: FinalPlayerStats[] = results.map((player, index) => ({
+        ...player,
+        place: index + 1,
+        result: player.userId === winnerId ? "WIN" : "LOSS",
+    }));
 
     await Promise.all(
         finalPlayerStats.map(async (playerStats) => {
@@ -344,12 +295,23 @@ export const startMatch = mutation({
             throw new Error("Match has already started or finished");
         }
 
+        const startedAt = Date.now();
+
         await ctx.db.patch(args.matchId, {
             status: "playing",
-            startedAt: Date.now(),
+            startedAt,
             winnerId: undefined,
             finishedAt: undefined,
+            results: undefined,
         });
+
+        if (match.gamemode === "time") {
+            await ctx.scheduler.runAt(
+                startedAt + TIME_MODE_DURATION_SECONDS * 1000,
+                internal.matches.finishTimeMatch,
+                { matchId: args.matchId, startedAt },
+            );
+        }
 
         return { success: true };
     },
@@ -409,14 +371,13 @@ export const getMatchWithPlayers = query({
                               accuracy: eliminatedPlayer.accuracy,
                               timeInSeconds: eliminatedPlayer.timeInSeconds,
                           }
-                        : getLivePlayerStats(playerGameStateEntry.words, elapsedSeconds),
+                        : calculatePlayerStats(playerGameStateEntry.words, elapsedSeconds),
                 };
             }),
         );
 
         const rankedOpponentStates = sortOpponentStates(
             opponentStates.filter((opponentState) => opponentState !== null),
-            match.gamemode,
         ).slice(0, 3);
 
         const playerEntries = await Promise.all(
@@ -532,6 +493,20 @@ export const updatePlayerGameState = mutation({
             throw new Error("Player is not in this match");
         }
 
+        if (
+            match.gamemode === "time" &&
+            match.startedAt !== undefined &&
+            Date.now() >= match.startedAt + TIME_MODE_DURATION_SECONDS * 1000
+        ) {
+            return { success: false };
+        }
+
+        if (match.status !== "playing") {
+            throw new Error("Match is not currently in progress");
+        }
+
+        validatePlayerWords(match.words, args.words);
+
         const playerGameState = await ctx.db
             .query("playerGameState")
             .withIndex("by_match_user", (q) =>
@@ -546,6 +521,64 @@ export const updatePlayerGameState = mutation({
         await ctx.db.patch(playerGameState._id, {
             words: cloneWords(args.words),
             updatedAt: Date.now(),
+        });
+
+        return { success: true };
+    },
+});
+
+/** Finalizes a time match at its authoritative deadline and stores ranked results. */
+export const finishTimeMatch = internalMutation({
+    args: {
+        matchId: v.id("match"),
+        startedAt: v.number(),
+    },
+
+    handler: async (ctx, args) => {
+        const match = await ctx.db.get(args.matchId);
+
+        if (
+            !match ||
+            match.gamemode !== "time" ||
+            match.status !== "playing" ||
+            match.startedAt !== args.startedAt
+        ) {
+            return { success: false };
+        }
+
+        const playerStates = await ctx.db
+            .query("playerGameState")
+            .withIndex("by_match", (q) => q.eq("matchId", args.matchId))
+            .collect();
+        const stateByUserId = new Map(
+            playerStates.map((playerState) => [playerState.userId, playerState]),
+        );
+        const results = match.players
+            .map((userId) => ({
+                userId,
+                ...calculatePlayerStats(
+                    stateByUserId.get(userId)?.words ?? [],
+                    TIME_MODE_DURATION_SECONDS,
+                ),
+            }))
+            .sort(compareRankedPlayerStats);
+        const finishedAt = args.startedAt + TIME_MODE_DURATION_SECONDS * 1000;
+        const winnerId = results[0]?.userId;
+
+        await finalizeCompletedMatch({
+            ctx,
+            matchId: args.matchId,
+            gamemode: match.gamemode,
+            results,
+            winnerId,
+            finishedAt,
+        });
+
+        await ctx.db.patch(args.matchId, {
+            status: "finished",
+            winnerId,
+            finishedAt,
+            results,
         });
 
         return { success: true };
@@ -596,30 +629,66 @@ export const eliminatePlayer = mutation({
             },
         ];
         const survivingPlayerCount = match.players.length - eliminatedPlayers.length;
-        const winnerId =
-            survivingPlayerCount === 1
+        const shouldFinishMatch = survivingPlayerCount <= 1;
+        const lastPlayerStanding =
+            shouldFinishMatch
                 ? getInstantFailWinner(match.players, eliminatedPlayers)
                 : undefined;
-        const finishedAt = winnerId ? Date.now() : undefined;
+        let results;
 
-        if (winnerId && finishedAt !== undefined) {
-            await finalizeInstantFailMatch({
+        if (shouldFinishMatch) {
+            const survivorState = lastPlayerStanding
+                ? await ctx.db
+                      .query("playerGameState")
+                      .withIndex("by_match_user", (q) =>
+                          q.eq("matchId", args.matchId).eq("userId", lastPlayerStanding),
+                      )
+                      .unique()
+                : null;
+            const elapsedSeconds = match.startedAt
+                ? Math.max(0, Math.floor((Date.now() - match.startedAt) / 1000))
+                : 0;
+            const survivorStats = calculatePlayerStats(survivorState?.words ?? [], elapsedSeconds);
+            const eliminatedStatsByUserId = new Map(
+                eliminatedPlayers.map((player) => [player.userId, player]),
+            );
+
+            results = match.players
+                .map((userId) => {
+                    const eliminatedPlayer = eliminatedStatsByUserId.get(userId);
+
+                    return eliminatedPlayer
+                        ? {
+                              userId,
+                              wpm: eliminatedPlayer.wpm,
+                              accuracy: eliminatedPlayer.accuracy,
+                              timeInSeconds: eliminatedPlayer.timeInSeconds,
+                          }
+                        : { userId, ...survivorStats };
+                })
+                .sort(compareRankedPlayerStats);
+        }
+
+        const winnerId = lastPlayerStanding ? results?.[0]?.userId : undefined;
+        const finishedAt = results ? Date.now() : undefined;
+
+        if (results && finishedAt !== undefined) {
+            await finalizeCompletedMatch({
                 ctx,
                 matchId: args.matchId,
-                players: match.players,
                 gamemode: match.gamemode,
-                eliminatedPlayers,
+                results,
                 winnerId,
-                startedAt: match.startedAt,
                 finishedAt,
             });
         }
 
         await ctx.db.patch(args.matchId, {
             eliminatedPlayers,
-            status: winnerId ? "finished" : match.status,
+            status: results ? "finished" : match.status,
             winnerId,
             finishedAt,
+            results,
         });
 
         return { success: true };
@@ -664,6 +733,7 @@ export const restartMatch = mutation({
             startedAt: undefined,
             winnerId: undefined,
             finishedAt: undefined,
+            results: undefined,
         });
 
         return { success: true };
