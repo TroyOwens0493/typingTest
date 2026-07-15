@@ -14,14 +14,20 @@ export default defineSchema({
         peakWPM: v.number(),
         totalTime: v.number(),
         averageAccuracy: v.number(),
-        recentSessions: v.object({
-            time: v.string(),
-            wpm: v.number(),
-            accuracy: v.number(),
-            result: v.string(),
-            place: v.number(),
-        }),
     }).index("by_email", ["email"]),
+    recentMatch: defineTable({
+        userId: v.id("user"),
+        matchId: v.id("match"),
+        gamemode: v.string(),
+        result: v.string(),
+        place: v.number(),
+        wpm: v.number(),
+        accuracy: v.number(),
+        timeInSeconds: v.number(),
+        finishedAt: v.number(),
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_finished_at", ["userId", "finishedAt"]),
     match: defineTable({
         ownerId: v.id("user"),
         code: v.string(),
