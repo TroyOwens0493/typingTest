@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { TIME_MODE_DURATION_SECONDS } from "../models/gameModes";
 import { calculatePlayerStats, compareRankedPlayerStats } from "../models/gameScoring";
@@ -106,6 +107,99 @@ function getInstantFailWinner(
     const eliminatedIds = new Set(eliminatedPlayers.map((player) => player.userId));
 
     return players.find((playerId) => !eliminatedIds.has(playerId));
+}
+
+type FinalPlayerStats = {
+    userId: Id<"user">;
+    wpm: number;
+    accuracy: number;
+    timeInSeconds: number;
+    place: number;
+    result: "WIN" | "LOSS";
+};
+
+/** Applies aggregate stat updates for a user's newly finished match. */
+function getUpdatedUserStats({
+    existingUser,
+    finalStats,
+}: {
+    existingUser: {
+        gamesPlayed: number;
+        gamesWon: number;
+        averageWPM: number;
+        peakWPM: number;
+        totalTime: number;
+        averageAccuracy: number;
+    };
+    finalStats: Pick<FinalPlayerStats, "wpm" | "accuracy" | "timeInSeconds" | "result">;
+}) {
+    const previousGamesPlayed = existingUser.gamesPlayed;
+    const nextGamesPlayed = previousGamesPlayed + 1;
+    const totalWpm = existingUser.averageWPM * previousGamesPlayed + finalStats.wpm;
+    const totalAccuracy =
+        existingUser.averageAccuracy * previousGamesPlayed + finalStats.accuracy;
+
+    return {
+        gamesPlayed: nextGamesPlayed,
+        gamesWon: existingUser.gamesWon + (finalStats.result === "WIN" ? 1 : 0),
+        averageWPM: Math.round(totalWpm / nextGamesPlayed),
+        peakWPM: Math.max(existingUser.peakWPM, finalStats.wpm),
+        totalTime: existingUser.totalTime + finalStats.timeInSeconds,
+        averageAccuracy: Math.round(totalAccuracy / nextGamesPlayed),
+    };
+}
+
+/** Persists completed-match stat history and aggregate updates for each player once. */
+async function finalizeInstantFailMatch({
+    ctx,
+    matchId,
+    gamemode,
+    results,
+    finishedAt,
+}: {
+    ctx: MutationCtx;
+    matchId: Id<"match">;
+    gamemode: string;
+    results: Array<{
+        userId: Id<"user">;
+        wpm: number;
+        accuracy: number;
+        timeInSeconds: number;
+    }>;
+    finishedAt: number;
+}) {
+    const finalPlayerStats: FinalPlayerStats[] = results.map((player, index) => ({
+        ...player,
+        place: index + 1,
+        result: index === 0 ? "WIN" : "LOSS",
+    }));
+
+    await Promise.all(
+        finalPlayerStats.map(async (playerStats) => {
+            const user = await ctx.db.get(playerStats.userId);
+
+            if (!user) {
+                throw new Error("User not found while finalizing match");
+            }
+
+            await ctx.db.patch(playerStats.userId, getUpdatedUserStats({
+                existingUser: user,
+                finalStats: playerStats,
+            }));
+
+            await ctx.db.insert("recentMatch", {
+                userId: playerStats.userId,
+                matchId,
+                gamemode,
+                result: playerStats.result,
+                place: playerStats.place,
+                wpm: playerStats.wpm,
+                accuracy: playerStats.accuracy,
+                timeInSeconds: playerStats.timeInSeconds,
+                finishedAt,
+            });
+        }),
+    );
 }
 
 /** Fetches a match by its ID. */
@@ -560,12 +654,23 @@ export const eliminatePlayer = mutation({
         }
 
         const winnerId = results?.[0]?.userId;
+        const finishedAt = winnerId ? Date.now() : undefined;
+
+        if (results && winnerId && finishedAt !== undefined) {
+            await finalizeInstantFailMatch({
+                ctx,
+                matchId: args.matchId,
+                gamemode: match.gamemode,
+                results,
+                finishedAt,
+            });
+        }
 
         await ctx.db.patch(args.matchId, {
             eliminatedPlayers,
             status: winnerId ? "finished" : match.status,
             winnerId,
-            finishedAt: winnerId ? Date.now() : undefined,
+            finishedAt,
             results,
         });
 
