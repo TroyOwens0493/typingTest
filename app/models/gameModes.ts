@@ -1,5 +1,7 @@
 export type GameMode = "time" | "instant-fail";
 
+export const TIME_MODE_DURATION_SECONDS = 60;
+
 export type GameModeOption = {
     id: GameMode;
     label: string;

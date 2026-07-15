@@ -111,6 +111,8 @@ type TypingTestComponentProps = {
     allowFocusChange?: boolean;
     /** Optional external timer start timestamp (ms since epoch), used for synchronized match timers. */
     timerStartTime?: number;
+    /** Optional duration that turns the elapsed timer into a countdown and disables input at zero. */
+    timerDurationSeconds?: number;
     /** Enables elimination on the first typing mistake. */
     instantFailEnabled?: boolean;
     /** Called once when the player gets eliminated. */
@@ -198,6 +200,7 @@ export function TypingTestComponent({
     unfocusedMessage,
     allowFocusChange = true,
     timerStartTime,
+    timerDurationSeconds,
     instantFailEnabled = false,
     onEliminated,
     onWordBoundary,
@@ -218,6 +221,8 @@ export function TypingTestComponent({
     const [activeWords, setActiveWords] = useState(words);
     // Whether the typing test has been completed.
     const [isComplete, setIsComplete] = useState(false);
+    // Whether a timed player exhausted the word list before the deadline.
+    const [hasFinishedWords, setHasFinishedWords] = useState(false);
     // Whether the player has been eliminated by instant-fail rules.
     const [isEliminated, setIsEliminated] = useState(false);
     // Cached stats to display after elimination.
@@ -228,6 +233,12 @@ export function TypingTestComponent({
     const lastSyncedWordIndex = useRef(0);
     // Effective timer start timestamp, preferring external match start time when provided.
     const effectiveStartTime = timerStartTime ?? startTime;
+    const hasTimedOut =
+        timerDurationSeconds !== undefined && timerInSeconds >= timerDurationSeconds;
+    const displayedTime =
+        timerDurationSeconds === undefined
+            ? timerInSeconds
+            : Math.max(0, timerDurationSeconds - timerInSeconds);
 
     // Keep focus state in sync with external unfocused message changes.
     useEffect(() => {
@@ -262,6 +273,7 @@ export function TypingTestComponent({
         setWordsTyped(0);
         setActiveWords(words);
         setIsComplete(false);
+        setHasFinishedWords(false);
         setIsEliminated(false);
         setEliminatedStats(undefined);
         hasReportedElimination.current = false;
@@ -276,7 +288,7 @@ export function TypingTestComponent({
             return;
         }
 
-        if (!isFocused || isComplete || isEliminated) return;
+        if (!isFocused || isComplete || isEliminated || hasTimedOut || hasFinishedWords) return;
         setTyped((prev) => {
             let nextTyped = prev;
 
@@ -335,6 +347,8 @@ export function TypingTestComponent({
         activeWords,
         effectiveStartTime,
         onEliminated,
+        hasTimedOut,
+        hasFinishedWords,
     ]);
 
     // Recompute word states whenever typed input changes.
@@ -353,8 +367,22 @@ export function TypingTestComponent({
                 !extraTyped;
 
             if (isTestComplete) {
-                setIsComplete(true);
+                if (timerDurationSeconds === undefined) {
+                    setIsComplete(true);
+                } else {
+                    setHasFinishedWords(true);
+                }
                 setIsFocused(false);
+
+                return currentWords.map((word, index) => {
+                    const wordTyped = typedArr[index] ?? "";
+                    return {
+                        ...word,
+                        typed: wordTyped,
+                        state: "pending",
+                        status: wordTyped === word.text ? "correct" : "incorrect",
+                    };
+                });
             }
 
             if (activeIndex >= currentWords.length) {
@@ -386,11 +414,11 @@ export function TypingTestComponent({
                 return { ...word, typed: wordTyped, state: "pending", status: undefined };
             });
         });
-    }, [typed]);
+    }, [typed, timerDurationSeconds]);
 
     /** Persists the player's latest state whenever they advance to a new word. */
     useEffect(() => {
-        if (!onWordBoundary || isComplete || isEliminated) {
+        if (!onWordBoundary || isEliminated) {
             return;
         }
 
@@ -402,14 +430,19 @@ export function TypingTestComponent({
 
         lastSyncedWordIndex.current = completedWordCount;
         void Promise.resolve(onWordBoundary(activeWords));
-    }, [activeWords, isComplete, isEliminated, onWordBoundary]);
+    }, [activeWords, isEliminated, onWordBoundary]);
 
     // Refresh active words when the word list prop changes.
     useEffect(() => {
         setActiveWords(words);
         setIsComplete(false);
+        setHasFinishedWords(
+            timerDurationSeconds !== undefined &&
+                words.length > 0 &&
+                words.every((word) => word.status !== undefined),
+        );
         lastSyncedWordIndex.current = words.filter((word) => word.status !== undefined).length;
-    }, [words]);
+    }, [timerDurationSeconds, words]);
 
     // Restores elimination state from persisted match data.
     useEffect(() => {
@@ -424,6 +457,13 @@ export function TypingTestComponent({
         setIsFocused(false);
         hasReportedElimination.current = true;
     }, [initialEliminatedStats]);
+
+    // Lock the typing surface locally at the deadline while the server finalizes results.
+    useEffect(() => {
+        if (hasTimedOut) {
+            setIsFocused(false);
+        }
+    }, [hasTimedOut]);
 
     // Recompute displayed elapsed time when using an external synchronized timer.
     useEffect(() => {
@@ -442,7 +482,7 @@ export function TypingTestComponent({
                 resetTypingState();
                 return;
             }
-            if (!isFocused || isComplete || isEliminated) return;
+            if (!isFocused || isComplete || isEliminated || hasTimedOut || hasFinishedWords) return;
             getSetWords(e.key);
         }
 
@@ -451,7 +491,16 @@ export function TypingTestComponent({
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [getSetWords, isFocused, isComplete, isEliminated, resetTypingState, allowFocusChange]);
+    }, [
+        getSetWords,
+        isFocused,
+        isComplete,
+        isEliminated,
+        hasTimedOut,
+        hasFinishedWords,
+        resetTypingState,
+        allowFocusChange,
+    ]);
 
     // Start/stop the interval that updates elapsed time.
     useEffect(() => {
@@ -462,6 +511,23 @@ export function TypingTestComponent({
         }, 1000);
         return () => clearInterval(id);
     }, [effectiveStartTime, isComplete]);
+
+    // Hit the time-mode boundary exactly instead of waiting for the next interval tick.
+    useEffect(() => {
+        if (timerDurationSeconds === undefined || effectiveStartTime === 0 || isComplete) {
+            return;
+        }
+
+        const remainingMilliseconds = Math.max(
+            0,
+            effectiveStartTime + timerDurationSeconds * 1000 - Date.now(),
+        );
+        const id = window.setTimeout(() => {
+            setTimerInSeconds(timerDurationSeconds);
+        }, remainingMilliseconds);
+
+        return () => window.clearTimeout(id);
+    }, [effectiveStartTime, isComplete, timerDurationSeconds]);
 
     return (
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 lg:px-12">
@@ -484,7 +550,7 @@ export function TypingTestComponent({
                 <div className="h-4 w-px bg-neutral-800" />
                 <StatBlock
                     label="TIME"
-                    value={`${timerInSeconds}`}
+                    value={`${displayedTime}`}
                     accent
                 />
             </div>
@@ -499,7 +565,16 @@ export function TypingTestComponent({
             >
                 {!isFocused && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[3px]">
-                        {isEliminated && eliminatedStats ? (
+                        {hasTimedOut || hasFinishedWords ? (
+                            <div className="flex items-center gap-2 text-neutral-500">
+                                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime" />
+                                <span className="text-[11px] tracking-[0.2em]">
+                                    {hasTimedOut
+                                        ? "TIME EXPIRED — FINALIZING RESULTS"
+                                        : "WORD LIST COMPLETE — WAITING FOR TIMEOUT"}
+                                </span>
+                            </div>
+                        ) : isEliminated && eliminatedStats ? (
                             <div className="w-full max-w-lg border border-red-400/30 bg-black/80 p-6">
                                 <p className="text-center text-xs tracking-[0.25em] text-red-400">
                                     ELIMINATED

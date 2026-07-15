@@ -2,6 +2,7 @@ import { Nav } from "~/components/nav";
 import { Footer } from "~/components/footer";
 import { Panel } from "~/components/panel";
 import type { Id } from "~/convex/_generated/dataModel";
+import { TIME_MODE_DURATION_SECONDS } from "~/models/gameModes";
 
 type EliminatedPlayer = {
     userId: Id<"user">;
@@ -17,6 +18,12 @@ type ResultsProps = {
     ownerId: Id<"user">;
     winnerId?: Id<"user">;
     eliminatedPlayers: EliminatedPlayer[];
+    results?: Array<{
+        userId: Id<"user">;
+        wpm: number;
+        accuracy: number;
+        timeInSeconds: number;
+    }>;
     players: Array<{
         userId: Id<"user">;
         username: string;
@@ -32,11 +39,23 @@ function getPlacements({
     players,
     winnerId,
     eliminatedPlayers,
-}: Pick<ResultsProps, "players" | "winnerId" | "eliminatedPlayers">) {
+    results,
+    gamemode,
+}: Pick<ResultsProps, "players" | "winnerId" | "eliminatedPlayers" | "results" | "gamemode">) {
+    const playerLookup = new Map(players.map((player) => [player.userId, player.username]));
+
+    if (gamemode === "time" && results) {
+        return results.map((player, index) => ({
+            userId: player.userId,
+            username: playerLookup.get(player.userId) ?? "Unknown player",
+            result: index === 0 ? "WINNER" : "FINISHED",
+            summary: `${player.wpm} WPM / ${player.accuracy}% ACC / ${player.timeInSeconds}s`,
+        }));
+    }
+
     const eliminatedIds = new Set(eliminatedPlayers.map((player) => player.userId));
     const survivingPlayers = players.filter((player) => !eliminatedIds.has(player.userId));
     const championId = winnerId ?? survivingPlayers[0]?.userId;
-    const playerLookup = new Map(players.map((player) => [player.userId, player.username]));
 
     return [
         ...(championId
@@ -66,13 +85,14 @@ export function Results({
     ownerId,
     winnerId,
     eliminatedPlayers,
+    results,
     players,
     joinCode,
     gamemode,
     status,
     isSubmitting,
 }: ResultsProps) {
-    const placements = getPlacements({ players, winnerId, eliminatedPlayers });
+    const placements = getPlacements({ players, winnerId, eliminatedPlayers, results, gamemode });
     const isOwner = ownerId === currentUserId;
     const didCurrentUserWin = winnerId === currentUserId;
     const winnerName = players.find((player) => player.userId === winnerId)?.username;
@@ -145,7 +165,11 @@ export function Results({
                                 />
                                 <Panel.Row
                                     label="ROUND TYPE"
-                                    value="LAST PLAYER STANDING"
+                                    value={
+                                        gamemode === "time"
+                                            ? `${TIME_MODE_DURATION_SECONDS} SECOND SPRINT`
+                                            : "LAST PLAYER STANDING"
+                                    }
                                 />
                             </Panel.Rows>
                         </Panel>
@@ -170,7 +194,7 @@ export function Results({
                                             {isSubmitting ? "RESTARTING..." : "RESTART GAME"}
                                         </button>
                                         <p className="mt-3 text-[10px] tracking-[0.12em] text-neutral-600">
-                                            Reset the match to the lobby and start a fresh instant-fail round.
+                                            Reset the match to the lobby and start a fresh round.
                                         </p>
                                     </form>
                                 ) : (

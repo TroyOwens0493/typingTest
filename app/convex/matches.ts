@@ -1,7 +1,10 @@
 import { v } from "convex/values";
 
-import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { TIME_MODE_DURATION_SECONDS } from "../models/gameModes";
+import { calculatePlayerStats } from "../models/gameScoring";
 
 const MATCH_CODE_CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const MATCH_CODE_LENGTH = 6;
@@ -23,31 +26,54 @@ function cloneWords(words: Array<{
     return words.map((word) => ({ ...word }));
 }
 
-/** Builds live stats for a player's in-progress run from their current words. */
-function getLivePlayerStats(
+/** Rejects malformed client snapshots before they can influence live or final scores. */
+function validatePlayerWords(
+    seedWords: Array<{ text: string }>,
     words: Array<{
         text: string;
+        state: "pending" | "active";
         status?: "correct" | "incorrect";
+        typed?: string;
     }>,
-    timeInSeconds: number,
 ) {
-    const evaluatedWords = words.filter((word) => word.status !== undefined);
-    const correctCharacters = evaluatedWords.reduce((total, word) => {
-        if (word.status === "correct") {
-            return total + word.text.length;
+    if (words.length !== seedWords.length) {
+        throw new Error("Invalid player word state");
+    }
+
+    const activeIndexes = words.flatMap((word, index) =>
+        word.state === "active" ? [index] : [],
+    );
+    const activeIndex = activeIndexes[0] ?? words.length;
+
+    if (activeIndexes.length > 1) {
+        throw new Error("Invalid player word state");
+    }
+
+    words.forEach((word, index) => {
+        if (word.text !== seedWords[index]?.text || typeof word.typed !== "string") {
+            throw new Error("Invalid player word state");
         }
 
-        return total;
-    }, 0);
-    const totalCharacters = evaluatedWords.reduce((total, word) => total + word.text.length, 0);
-    const accuracy = totalCharacters > 0 ? Math.round((correctCharacters / totalCharacters) * 100) : 0;
-    const wpm = timeInSeconds > 0 ? Math.round(correctCharacters / 5 / (timeInSeconds / 60)) : 0;
+        if (index < activeIndex) {
+            const expectedStatus = word.typed === word.text ? "correct" : "incorrect";
+            if (word.state !== "pending" || word.status !== expectedStatus) {
+                throw new Error("Invalid player word state");
+            }
+            return;
+        }
 
-    return {
-        wpm,
-        accuracy,
-        timeInSeconds,
-    };
+        if (index === activeIndex && activeIndex < words.length) {
+            const expectedStatus = word.text.startsWith(word.typed) ? undefined : "incorrect";
+            if (word.status !== expectedStatus) {
+                throw new Error("Invalid player word state");
+            }
+            return;
+        }
+
+        if (word.state !== "pending" || word.status !== undefined || word.typed !== "") {
+            throw new Error("Invalid player word state");
+        }
+    });
 }
 
 /** Orders opponents for the live stats panel based on the current match mode. */
@@ -195,12 +221,23 @@ export const startMatch = mutation({
             throw new Error("Match has already started or finished");
         }
 
+        const startedAt = Date.now();
+
         await ctx.db.patch(args.matchId, {
             status: "playing",
-            startedAt: Date.now(),
+            startedAt,
             winnerId: undefined,
             finishedAt: undefined,
+            results: undefined,
         });
+
+        if (match.gamemode === "time") {
+            await ctx.scheduler.runAt(
+                startedAt + TIME_MODE_DURATION_SECONDS * 1000,
+                internal.matches.finishTimeMatch,
+                { matchId: args.matchId, startedAt },
+            );
+        }
 
         return { success: true };
     },
@@ -260,7 +297,7 @@ export const getMatchWithPlayers = query({
                               accuracy: eliminatedPlayer.accuracy,
                               timeInSeconds: eliminatedPlayer.timeInSeconds,
                           }
-                        : getLivePlayerStats(playerGameStateEntry.words, elapsedSeconds),
+                        : calculatePlayerStats(playerGameStateEntry.words, elapsedSeconds),
                 };
             }),
         );
@@ -383,6 +420,20 @@ export const updatePlayerGameState = mutation({
             throw new Error("Player is not in this match");
         }
 
+        if (
+            match.gamemode === "time" &&
+            match.startedAt !== undefined &&
+            Date.now() >= match.startedAt + TIME_MODE_DURATION_SECONDS * 1000
+        ) {
+            return { success: false };
+        }
+
+        if (match.status !== "playing") {
+            throw new Error("Match is not currently in progress");
+        }
+
+        validatePlayerWords(match.words, args.words);
+
         const playerGameState = await ctx.db
             .query("playerGameState")
             .withIndex("by_match_user", (q) =>
@@ -397,6 +448,57 @@ export const updatePlayerGameState = mutation({
         await ctx.db.patch(playerGameState._id, {
             words: cloneWords(args.words),
             updatedAt: Date.now(),
+        });
+
+        return { success: true };
+    },
+});
+
+/** Finalizes a time match at its authoritative deadline and stores ranked results. */
+export const finishTimeMatch = internalMutation({
+    args: {
+        matchId: v.id("match"),
+        startedAt: v.number(),
+    },
+
+    handler: async (ctx, args) => {
+        const match = await ctx.db.get(args.matchId);
+
+        if (
+            !match ||
+            match.gamemode !== "time" ||
+            match.status !== "playing" ||
+            match.startedAt !== args.startedAt
+        ) {
+            return { success: false };
+        }
+
+        const playerStates = await ctx.db
+            .query("playerGameState")
+            .withIndex("by_match", (q) => q.eq("matchId", args.matchId))
+            .collect();
+        const stateByUserId = new Map(
+            playerStates.map((playerState) => [playerState.userId, playerState]),
+        );
+        const results = match.players
+            .map((userId) => ({
+                userId,
+                ...calculatePlayerStats(
+                    stateByUserId.get(userId)?.words ?? [],
+                    TIME_MODE_DURATION_SECONDS,
+                ),
+            }))
+            .sort((left, right) => {
+                if (right.wpm !== left.wpm) return right.wpm - left.wpm;
+                if (right.accuracy !== left.accuracy) return right.accuracy - left.accuracy;
+                return left.userId.localeCompare(right.userId);
+            });
+
+        await ctx.db.patch(args.matchId, {
+            status: "finished",
+            winnerId: results[0]?.userId,
+            finishedAt: args.startedAt + TIME_MODE_DURATION_SECONDS * 1000,
+            results,
         });
 
         return { success: true };
@@ -501,6 +603,7 @@ export const restartMatch = mutation({
             startedAt: undefined,
             winnerId: undefined,
             finishedAt: undefined,
+            results: undefined,
         });
 
         return { success: true };

@@ -47,6 +47,16 @@ export default defineSchema({
             }),
         ),
         startedAt: v.optional(v.number()),
+        results: v.optional(
+            v.array(
+                v.object({
+                    userId: v.id("user"),
+                    wpm: v.number(),
+                    accuracy: v.number(),
+                    timeInSeconds: v.number(),
+                }),
+            ),
+        ),
         words: v.array(
             v.object({
                 text: v.string(),
