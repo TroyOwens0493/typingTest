@@ -155,6 +155,7 @@ async function finalizeCompletedMatch({
     matchId,
     gamemode,
     results,
+    winnerId,
     finishedAt,
 }: {
     ctx: MutationCtx;
@@ -166,12 +167,13 @@ async function finalizeCompletedMatch({
         accuracy: number;
         timeInSeconds: number;
     }>;
+    winnerId?: Id<"user">;
     finishedAt: number;
 }) {
     const finalPlayerStats: FinalPlayerStats[] = results.map((player, index) => ({
         ...player,
         place: index + 1,
-        result: index === 0 ? "WIN" : "LOSS",
+        result: player.userId === winnerId ? "WIN" : "LOSS",
     }));
 
     await Promise.all(
@@ -561,18 +563,20 @@ export const finishTimeMatch = internalMutation({
             }))
             .sort(compareRankedPlayerStats);
         const finishedAt = args.startedAt + TIME_MODE_DURATION_SECONDS * 1000;
+        const winnerId = results[0]?.userId;
 
         await finalizeCompletedMatch({
             ctx,
             matchId: args.matchId,
             gamemode: match.gamemode,
             results,
+            winnerId,
             finishedAt,
         });
 
         await ctx.db.patch(args.matchId, {
             status: "finished",
-            winnerId: results[0]?.userId,
+            winnerId,
             finishedAt,
             results,
         });
@@ -625,19 +629,22 @@ export const eliminatePlayer = mutation({
             },
         ];
         const survivingPlayerCount = match.players.length - eliminatedPlayers.length;
+        const shouldFinishMatch = survivingPlayerCount <= 1;
         const lastPlayerStanding =
-            survivingPlayerCount === 1
+            shouldFinishMatch
                 ? getInstantFailWinner(match.players, eliminatedPlayers)
                 : undefined;
         let results;
 
-        if (lastPlayerStanding) {
-            const survivorState = await ctx.db
-                .query("playerGameState")
-                .withIndex("by_match_user", (q) =>
-                    q.eq("matchId", args.matchId).eq("userId", lastPlayerStanding),
-                )
-                .unique();
+        if (shouldFinishMatch) {
+            const survivorState = lastPlayerStanding
+                ? await ctx.db
+                      .query("playerGameState")
+                      .withIndex("by_match_user", (q) =>
+                          q.eq("matchId", args.matchId).eq("userId", lastPlayerStanding),
+                      )
+                      .unique()
+                : null;
             const elapsedSeconds = match.startedAt
                 ? Math.max(0, Math.floor((Date.now() - match.startedAt) / 1000))
                 : 0;
@@ -662,22 +669,23 @@ export const eliminatePlayer = mutation({
                 .sort(compareRankedPlayerStats);
         }
 
-        const winnerId = results?.[0]?.userId;
-        const finishedAt = winnerId ? Date.now() : undefined;
+        const winnerId = lastPlayerStanding ? results?.[0]?.userId : undefined;
+        const finishedAt = results ? Date.now() : undefined;
 
-        if (results && winnerId && finishedAt !== undefined) {
+        if (results && finishedAt !== undefined) {
             await finalizeCompletedMatch({
                 ctx,
                 matchId: args.matchId,
                 gamemode: match.gamemode,
                 results,
+                winnerId,
                 finishedAt,
             });
         }
 
         await ctx.db.patch(args.matchId, {
             eliminatedPlayers,
-            status: winnerId ? "finished" : match.status,
+            status: results ? "finished" : match.status,
             winnerId,
             finishedAt,
             results,
